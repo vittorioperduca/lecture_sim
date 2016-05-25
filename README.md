@@ -1,1 +1,1 @@
-Lecture on simulations in statistical testing, The Artic University of Norway, June 2016.
+Lecture about simulations for statistical testing. The Artic University of Norway, June 2016.
