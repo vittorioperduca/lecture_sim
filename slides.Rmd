@@ -1,0 +1,59 @@
+---
+title: "Untitled"
+author: "Vittorio Perduca (Paris Descartes)"
+date: "25 mai 2016"
+output: ioslides_presentation
+---
+
+## Contents
+
+* Statistical testing: a quick review
+    + H0,H1 hypothesis
+    + False positives and negative
+    + p-values
+    + power
+    + common tests?
+
+
+* Simulations: when distribution is not known
+     + empirical p-values
+     + empirical power
+  
+* Multiple testing: a general problem which can be addressed with simulations
+    + FWER 
+    + theoretical correction for independent tests 
+    + correlated tests and permutations  
+    + other approaches ie genomic control, FDR?
+
+* Very quick insights on my research
+    + weighted permutations for simulating under H1
+    + distribution of score test under H0 and H1
+
+## Hypothesis testing
+
+- H0, H1, rules
+- pvalues and power: the usual picture
+
+
+## p-values computing
+
+- The ideal situation: distribution under H0 is known 
+- Example when this is not the case
+- permutation test
+- link with bootstrap?
+
+## power computing
+
+- Distribution under H1 is most of the times not known
+- Case-control studies: possible empirical approaches
+- waffect
+    + idea of the algorithm
+    + example of applications from the tutorial
+
+## Multiple testing
+
+- Family wise error rate
+- Bonferroni correction: wiki proof
+- Example: theoretical and empirical fwer with dependent and independent tests
+- Empirical alternative: permutation -> compute statistics for each marker -> compute p-values for each marker -> take the min, repeat from 'permutation' -> distribution of smallest p-values -> adjusted P value (see [sham14], non basta prendere come threshold il 0.05-quantile della distribuzione empirica?)
+- FDR with independent and dependent data: idea of the proof? 
