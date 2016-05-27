@@ -2,7 +2,7 @@
 title: "Untitled"
 author: "Vittorio Perduca (Paris Descartes)"
 date: "25 mai 2016"
-output: ioslides_presentation
+output: beamer_presentation
 ---
 
 ## Contents
