@@ -1,23 +1,27 @@
 ---
-title: "Untitled"
-author: "Vittorio Perduca (Paris Descartes)"
-date: "25 mai 2016"
-output: beamer_presentation
+title: "Simulations for statistical testing"
+subtitle: with applications to multiple tests
+author: "Vittorio Perduca (Univ. Paris Descartes)"
+date: "June 2016"
+output:
+  ioslides_presentation:
+    fig_height: 4
+    fig_width: 5
+    keep_md: yes
+    smaller: yes
+    widescreen: yes
+  beamer_presentation: default
+  slidy_presentation: default
 ---
 
 ## Contents
-
-* Statistical testing: a quick review
-    + H0,H1 hypothesis
-    + False positives and negative
-    + p-values
-    + power
-    + common tests?
 
 
 * Simulations: when distribution is not known
      + empirical p-values
      + empirical power
+     
+* Bootstrap
   
 * Multiple testing: a general problem which can be addressed with simulations
     + FWER 
@@ -29,15 +33,215 @@ output: beamer_presentation
     + weighted permutations for simulating under H1
     + distribution of score test under H0 and H1
 
-## Hypothesis testing
+# Hypothesis testing: a quick review
 
-- H0, H1, rules
-- pvalues and power: the usual picture
+##The Neyman-Pearson approach
+
+* __Aim: __ decide whether there is enough evidence in data to reject the current hypothesis 
+
+* __Steps:__
+
+    1. Set up null (H0) and althernative (H1) hypothesis
+    2. Calculate a test statistic $T_{obs}$ on the data
+    3. Decide on the basis of $T_{obs}$ whether to reject H0 in a way that allows to <font color='Turquoise'>control the false positive rate</font> at a given threshold $\alpha$:
+        + <font color = 'Magenta'>Crucial ingredient:</font> knowledge of the distribution of $T$ under H0 
+        + $\Rightarrow$ the last step requires 
+            + computing the probability $p$ for $T$ to be as extreme as $T_{obs}$ if H0 holds (the p value of the test)  
+            + <font color='Turquoise'>rejecting H0 if $p<\alpha$</font>
+
+## Example 
+
+Mock methylation M-values for 50 individuals with lung cancer and 50 individuals without
+```{r}
+mydata=read.table('data/ex_methy.csv',sep=',',header=T); attach(mydata)
+boxplot(Mvalue~Outcome)
+```
+
+## 
+
+Is the mean value in cases $\mu_1$ the same as the mean value in controls $\mu_0$? 
+
+1. Hypothesis:
+    + H0: $\mu_0-\mu_1=0$ 
+    + H1: $\mu_0 - \mu_1> 0$ (right unilateral test)
+2. Statistics:
+$$
+T=\frac{\mu_0-\mu_1}{\sigma\sqrt{1/n_0+1/n_1}}, \mbox{ where } \sigma=\sqrt{\frac{(n_0-1)\hat{\sigma_0}^2+(n_1-1)\hat{\sigma_1}^2}{n_0+n_1-2}}
+$$
+Under H0, $T$ follows a Student's t-distribution with $n-2$ degrees of freedom (assuming equal variance in groups)
+3. p value:
+$$
+p=Pr(T>T_{obs}| \mbox{H0})
+$$
+
+##
+
+```{r}
+s=sqrt((49*sd(Mvalue[Outcome==0])^2+49*sd(Mvalue[Outcome==1])^2)/98)
+Tobs=(mean(Mvalue[Outcome==0])-mean(Mvalue[Outcome==1]))/s/sqrt(1/50+1/50)
+p=pt(q=Tobs,df=98,lower.tail=F)
+unlist(list(Tobs=Tobs,p=p))
+```
+
+```{r,echo=FALSE}
+curve(dt(x,df=98),from=-7,to=7,ylab='',,xlab='',lwd=2)
+abline(v=Tobs,col='blue',lwd=2)
+polygon(c(Tobs,seq(Tobs,7,by=0.01),7),c(0,dt(seq(Tobs,7,by=0.01),df=98),0),col="beige")
+text(x = 3, y= 0.05, labels = expression(p),cex=1)
+legend(x='topleft', lwd=2, col=c(1,'blue'),legend=c('T under H0', expression(T[obs])),bty='n')
+```
+_<font size=2>See the .Rmd file for this plot's code</font>_
+
+## 
+Equivalently, using the R fonction for Student's test:
+
+```{r}
+t.test(x=Mvalue[Outcome==0],y=Mvalue[Outcome==1],alternative='greater', var.equal=T)
+```
+
+Here $p=0.02$ $\Rightarrow$ we can reject H0 at the significance level $\alpha=0.05$ (but not at the 0.01 level...)
+
+## Decision rules
+
+By rejecting H0 iff $p<\alpha$ we control the type I error rate (ie the false positive rate) at the $\alpha$ level:
+
+Let $T_\alpha$ be the $(1-\alpha)$-quantile of $T$ under H0 (the critical value) $\Rightarrow p<\alpha$ iff $T_{obs} > T_\alpha$.
+$$
+\begin{align}
+\Rightarrow\mbox{Type I error rate }&=Pr(H0 \mbox{ rejected } | H0 \mbox{ holds })=Pr(p < \alpha | H0) \\
+                         &= Pr( T_{obs} > T_\alpha | H0) = \alpha
+\end{align}
+$$
+```{r,echo=FALSE}
+curve(dt(x,df=98),from=-7,to=7,ylab='',xlab='',lwd=2)
+abline(v=Tobs,col='darkgreen',lwd=2)
+abline(v=qt(p=1-0.05,df=98),col='red',lwd=2)
+polygon(c(qt(p=1-0.05,df=98),seq(qt(p=1-0.05,df=98),7,by=0.01),7),c(0,dt(seq(qt(p=1-0.05,df=98),7,by=0.01),df=98),0),col="Darkgray")
+polygon(c(Tobs,seq(Tobs,7,by=0.01),7),c(0,dt(seq(Tobs,7,by=0.01),df=98),0),col="Beige")
+text(x = 3, y= 0.05, labels = expression(p),cex=1)
+text(x = 1, y= 0.05, labels = expression(alpha),cex=1)
+legend(x='topleft', lwd=2, col=c(1,'darkgreen','red'),legend=c('T under H0', expression(T[obs]), expression(T[alpha])),bty='n')
+```
+
+## Misconceptions about p-values
+
+- p value is not the probability that H0 holds given the data. For this, a prior probability of H0 is needed:
+$$
+Pr(H0|\mbox{data})=\frac{Pr(\mbox{data}|H0)\times Pr(H0)}{Pr(\mbox{data}|H0)\times Pr(H0)+Pr(\mbox{data}|H1)\times Pr(H1)}
+$$
+- An alternative to frequentist p value is Bayes factor $BF=Pr(\mbox{data}|H1)/Pr(\mbox{data}|H0)$:
+$$
+\frac{Pr(H1|\mbox{data})}{Pr(H0|\mbox{data})}=\frac{Pr(\mbox{data}|H1)}{Pr(\mbox{data}|H0)}\times\frac{Pr(H1)}{Pr(H0)}
+$$
+- $p<\alpha$ suggests there might be something in data, it is not a proof of scientific finding. What matters is the effect size
+- use p values only to test well defined hypothesis
+- do not forget confidence intervals
+- controversial finding: published studies with $p<\alpha$ are _often_ not replicable (wait a few slides...)
+
+<font size=3>References</font>
+
+- <font size=2> Nuzzo, R. (2014). Nature, 506(7487), 150-152.</font>
+<!-- - <font size=2>Goodman, S. (2008). Seminars in hematology. Vol. 45, No. 3, 135-140. </font> -->
+- <font size=2>Senn, S. (2001). Journal of Epidemiology and Biostatistics, 6(2), 193-204. </font>
+
+
+## Statistical Power 
+
++------------+----------------------------+-------------------------------------------------+
+|            |H0 not rejected             |H0 rejected                                      |
++------------+----------------------------+-------------------------------------------------+
+|H0 true     |$1-\alpha$                  |$\alpha=$ type I error rate = significance level |
++------------+----------------------------+-------------------------------------------------+
+|H0 not true |$\beta=$ type II error rate |<font color='Magenta'>$1-\beta=$ Power</font>    |
++------------+----------------------------+-------------------------------------------------+
+
+$$
+\begin{align}
+\mbox{Power } &= Pr(H0 \mbox{ rejected } | H1 \mbox{ holds}) \\
+              &= Pr(T > T_{\alpha}| H1 \mbox{ holds})
+\end{align}
+$$
+
+henceforth:
+
+* Power is a function of $\alpha$
+* In order to compute the test power one must know <font color = 'Magenta'>the distribution of $T$ under H1</font>
+
+
+## Back to the example
+
+What is the power of our t-test to reject H0 at confidence level $\alpha=0.01$ if $\mu_0-\mu_1=0.28$ (H1)? 
+
+\
+
+Under H1, $T$ follows a t-distribution with non-centrality $\frac{\mu_0-\mu_1}{\sigma\sqrt{1/n_0+1/n_1}}$
+
+```{r,echo=FALSE}
+Ta=qt(p=1-0.01,df=98)
+curve(dt(x,df=98),from=-7,to=7,ylab='',xlab='',lwd=2); abline(v=Ta,col='red',lwd=2)
+m0=mean(Mvalue[Outcome==0]); m1=mean(Mvalue[Outcome==1])
+ncp=(m0-m1)/s/sqrt(1/50+1/50)
+curve(dt(x,df=98,ncp=ncp),add=TRUE,col='blue',lwd=2)
+polygon(c(Ta,seq(Ta,7,by=0.01),7),c(0,dt(seq(Ta,7,by=0.01),df=98,ncp=ncp),0),col="skyblue")
+polygon(c(Ta,seq(Ta,7,by=0.01),7),c(0,dt(seq(Ta,7,by=0.01),df=98),0),col="darkgray")
+text(x = 1.5, y= 0.04, labels = expression(alpha),cex=1)
+text(x=5,y=.04, labels=expression(1-beta),cex=1)
+legend(x='topleft', lwd=2, col=c(1,'blue','red'),legend=c('T under H0', expression('T under H1'),expression(T[alpha])),bty='n')
+```
+
+##
+
+```{r}
+m0=mean(Mvalue[Outcome==0]); m1=mean(Mvalue[Outcome==1])
+ncp=ncp=(m0-m1)/s/sqrt(1/50+1/50)
+pw=pt(q=qt(p=1-0.01,df=98),df=98,ncp=ncp,lower.tail=FALSE)
+unlist(list(Power=pw))
+```
+
+Or equivalently, using the R built-in function:
+
+```{r}
+power.t.test(n=50,delta=0.28,alternative='one.sided',type='two.sample',sig.level=0.01,sd=sd(Mvalue))
+```
+
+
+## The replicability crisis 
+
+* Positive findings are often not replicable in subsequent studies (in all fields)
+* This can happen when initial studies are underpowered. To see why, consider the <font color='magenta'>false-positve report probability (FPRP)</font>:
+
+$$
+\begin{align}
+FPRP = Pr(H0 | p < \alpha) = & \frac{Pr(p<\alpha|H0)\times Pr(H0)}{Pr(p<\alpha|H0)\times Pr(H0)+Pr(p<\alpha|H1)\times Pr(H1)} \\
+                           = & \frac{\alpha Pr(H0)}{\alpha Pr(H0) + (1-\beta) Pr(H1)}
+\end{align}
+$$
+$\Rightarrow$ the FPRP increases for lower $\beta$s
+
+\
+
+\
+
+<font size=3>References</font>
+
+* <font size=2> Wacholder,S. (2004). J. Natl Cancer Inst. 96, 434-442</font>
+* <font size=2> Goodman, S. N. (1992). Stat. Med., 11(7), 875-879.</font>
+
+
+
+
+# Simulations for statistical testing
+
+## When simulations are useful
+
+Empirical p values:
+
+suppose the distribution of $T$ under H0 is not known but it is possible to generate samples (eg simulations)
+  
 
 
 ## p-values computing
 
-- The ideal situation: distribution under H0 is known 
 - Example when this is not the case
 - permutation test
 - link with bootstrap?
