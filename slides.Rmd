@@ -59,7 +59,7 @@ boxplot(Mvalue~Outcome)
 
 ## 
 
-Is the mean value in cases $\mu_1$ the same as the mean value in controls $\mu_0$? 
+Is the mean value in controls $\mu_0$ the same as the mean value in cases $\mu_1$? 
 
 1. Hypothesis:
     + H0: $\mu_0-\mu_1=0$ 
@@ -84,11 +84,11 @@ unlist(list(Tobs=Tobs,p=p))
 ```
 
 ```{r,echo=FALSE}
-curve(dt(x,df=98),from=-7,to=7,ylab='',,xlab='',lwd=2)
-abline(v=Tobs,col='blue',lwd=2)
+curve(dt(x,df=98),from=-7,to=7,ylab='',xlab='',lwd=2)
+abline(v=Tobs,col='darkgreen',lwd=2)
 polygon(c(Tobs,seq(Tobs,7,by=0.01),7),c(0,dt(seq(Tobs,7,by=0.01),df=98),0),col="beige")
 text(x = 3, y= 0.05, labels = expression(p),cex=1)
-legend(x='topleft', lwd=2, col=c(1,'blue'),legend=c('T under H0', expression(T[obs])),bty='n')
+legend(x='topleft', lwd=2, col=c(1,'darkgreen'),legend=c('T under H0', expression(T[obs])),bty='n')
 ```
 _<font size=2>See the .Rmd file for this plot's code</font>_
 
@@ -105,13 +105,14 @@ Here $p=0.02$ $\Rightarrow$ we can reject H0 at the significance level $\alpha=0
 
 By rejecting H0 iff $p<\alpha$ we control the type I error rate (ie the false positive rate) at the $\alpha$ level:
 
-Let $T_\alpha$ be the $(1-\alpha)$-quantile of $T$ under H0 (the critical value) $\Rightarrow p<\alpha$ iff $T_{obs} > T_\alpha$.
+Let $T_\alpha$ be the $(1-\alpha)$-quantile of $T$ under H0 (the critical value) $\Rightarrow p<\alpha$ iff $T_{obs} > T_\alpha$ <font size=2>(case of right unilateral tests)</font>
 $$
 \begin{align}
 \Rightarrow\mbox{Type I error rate }&=Pr(H0 \mbox{ rejected } | H0 \mbox{ holds })=Pr(p < \alpha | H0) \\
                          &= Pr( T_{obs} > T_\alpha | H0) = \alpha
 \end{align}
 $$
+
 ```{r,echo=FALSE}
 curve(dt(x,df=98),from=-7,to=7,ylab='',xlab='',lwd=2)
 abline(v=Tobs,col='darkgreen',lwd=2)
@@ -123,6 +124,7 @@ text(x = 1, y= 0.05, labels = expression(alpha),cex=1)
 legend(x='topleft', lwd=2, col=c(1,'darkgreen','red'),legend=c('T under H0', expression(T[obs]), expression(T[alpha])),bty='n')
 ```
 
+
 ## Misconceptions about p-values
 
 - p value is not the probability that H0 holds given the data. For this, a prior probability of H0 is needed:
@@ -131,7 +133,7 @@ Pr(H0|\mbox{data})=\frac{Pr(\mbox{data}|H0)\times Pr(H0)}{Pr(\mbox{data}|H0)\tim
 $$
 - An alternative to frequentist p value is Bayes factor $BF=Pr(\mbox{data}|H1)/Pr(\mbox{data}|H0)$:
 $$
-\frac{Pr(H1|\mbox{data})}{Pr(H0|\mbox{data})}=\frac{Pr(\mbox{data}|H1)}{Pr(\mbox{data}|H0)}\times\frac{Pr(H1)}{Pr(H0)}
+\frac{Pr(H1|\mbox{data})}{Pr(H0|\mbox{data})}=BF\times\frac{Pr(H1)}{Pr(H0)}
 $$
 - $p<\alpha$ suggests there might be something in data, it is not a proof of scientific finding. What matters is the effect size
 - use p values only to test well defined hypothesis
@@ -228,23 +230,173 @@ $\Rightarrow$ the FPRP increases for lower $\beta$s
 * <font size=2> Goodman, S. N. (1992). Stat. Med., 11(7), 875-879.</font>
 
 
+## Probability that H0 is true if test is positive
+
+```{r,echo=FALSE,fig.height=5.5,fig.width=7}
+betas=seq(0.05,1,by=0.05)
+par(mfrow=c(1,2))
+plot(betas,.05*.5/(.05*.5+betas*(1-.5)),type='o',pch=20,xlab=expression(beta),main='Pr(H0)=0.5',ylab='FPRP',ylim=c(0,1))
+points(betas,.01*.5/(.01*.5+betas*(1-.5)),type='o',pch=20,col='red')
+points(betas,.001*.5/(.001*.5+betas*(1-.5)),type='o',pch=20,col='darkgreen')
+legend(x='topleft',lwd=1,col=c('black','red','darkgreen'),
+       legend=c(expression(paste(alpha,' = 0.05',sep='')),
+                expression(paste(alpha,' = 0.01',sep='')),
+                expression(paste(alpha,' = 0.001',sep=''))),
+       bty='n',pch=20)
+plot(betas,.05*.8/(.05*.8+betas*(1-.8)),type='o',pch=20,xlab=expression(beta),main='Pr(H0)=0.8',ylab='FPRP',ylim=c(0,1))
+points(betas,.01*.8/(.01*.8+betas*(1-.8)),type='o',pch=20,col='red')
+points(betas,.001*.8/(.001*.5+betas*(1-.8)),type='o',pch=20,col='darkgreen')
+legend(x='topleft',lwd=1,col=c('black','red','darkgreen'),
+       legend=c(expression(paste(alpha,' = 0.05',sep='')),
+                expression(paste(alpha,' = 0.01',sep='')),
+                expression(paste(alpha,' = 0.001',sep=''))),
+       bty='n',pch=20)
+```
+
+# Testing with simulations: an overview
+
+## Simulations are useful when...
 
 
-# Simulations for statistical testing
+* ...the distribution of $T$ under H0 is not known (analytical derivation of its densities and CDF not possible, large sample approximations not available or not applicable) but it is possible to sample it<br> 
+$\Rightarrow$ we can calculate the <font color='Magenta'>empirical p value:</font>
+    1. simulate $N$ realizations of $T$ under H0: 
+    2. estimate p with 
+    $$
+    \hat{p} = \frac{\#\{ \mbox{ H0 } T \mbox{ realizations }  > T_{obs}\}}{N} 
+    $$
 
-## When simulations are useful
+* ...the distribution of $T$ under H1 is not known but it is possible to sample it <br>
+$\Rightarrow$ we can calculate the <font color='turquoise'>empirical power:</font>
+    1. simulate $N$ realizations of $T$ under H1
+    2. estimate power with
+    $$
+    \hat{\mbox{power}} = \frac{\#\{ \mbox{ H1 } T \mbox{ realizations }  > T_\alpha\}}{N}
+    $$
+    where $T_\alpha$ is the $(1-\alpha)$-quantile of $T$ under H0.
+    If the distribution of T under H0 is not known, one can sample T under H0 and take the $(1-\alpha)$-quantile.
 
-Empirical p values:
+## Why it works
 
-suppose the distribution of $T$ under H0 is not known but it is possible to generate samples (eg simulations)
-  
+Law of large numbers
 
 
-## p-values computing
 
-- Example when this is not the case
-- permutation test
-- link with bootstrap?
+## (Silly) application to our example: empirical p 
+```{r}
+Tsample0=rt(10000,df=98)
+em_p=mean(Tsample0>Tobs)
+unlist(list(p=p, empirical_p=em_p))
+```
+
+```{r, echo=FALSE}
+hist(Tsample0,main='Empirical distribution of T under H0',xlab='',freq=FALSE,ylim=c(0,.45)) 
+abline(v=Tobs,col='darkgreen',lwd=2)
+curve(dt(x,df=98),add=TRUE,from=min(Tsample0),to=max(Tsample0),lty=2)
+legend(x='topleft',lwd=2:1,legend=c(expression(T[obs]),'real dist'),col=c('darkgreen','black'),lty=1:2,bty='n')
+```
+
+
+## (Silly) application: empirical power 
+```{r}
+Tsample1=rt(10000,df=98,ncp=ncp)
+Ta_em=quantile(Tsample0,probs=1-0.01)
+em_pw=mean(Tsample1>Ta_em)
+unlist(list(power=pw, empirical_power=em_pw))
+```
+
+```{r,echo=FALSE}
+hist(Tsample1,main='Empirical distribution of T under H1',xlab='',freq=FALSE,ylim=c(0,.45))
+abline(v=Ta_em,col='red',lwd=2)
+curve(dt(x,df=98,ncp=ncp),add=TRUE,from=min(Tsample1),to=max(Tsample1),lty=2)
+legend(x='topleft',lwd=2:1,legend=c(expression(T[alpha]),'real dist'),col=c('red','black'),lty=1:2,bty='n')
+```
+
+
+## Data replicates
+
+Simulations are particularly useful for non-parametric tests ($\neq$ previous example). <br> 
+
+In this case, drawing a sample of the statistic under a given hypothesis requires two steps:
+
+- simulate <font color='magenta'>$N$ data raplicates</font> according to the hypothesis
+- for each replicate $i$, calculate the statistic realization $T_i$ 
+
+Afterwich, the p value and power are estimated as above.
+
+
+# Simulations for case/control testing 
+
+
+## Focus on permutation-like methods
+
+In the following we focus on two ways of generating data replicates for testing whether two groups (eg cases vs controls) are the same:
+
+1. <font color='turquoise'>Permutations</font> for simulating under H0 (classic)
+2.  <font color='turquoise'>Weighted permutations</font> for simulating under H1 (more original)
+
+
+
+## Permutations 
+
+* Suppose we have observations $x_1,\ldots,x_{n_0}\sim F_1$ for controls and observations $y_1,\ldots,y_{n_1}\sim F_2$ for cases
+* We want to test 
+$$
+\mbox{H0: } F_1=F_2\; \mbox{ versus }\; \mbox{ H1: }F_1\neq F_2
+$$
+(case-control association can be seen as a particular case)
+* Let $T$ be our statistics, eg $T=|\bar{x}-\bar{y}|$
+
+<font color='magenta'>Key fact:</font> H0 is equivalent to say that _the observations are independent from the case/control status_<br>
+$\Rightarrow$ we can sample the data distribution under H0 simply by shuffling the case control status: <font color='turquoise'>each permutation is a data replicate</font> 
+
+
+## Example
+
+```{r}
+tobs=abs(mean(Mvalue[Outcome==0])-mean(Mvalue[Outcome==1]))
+one.perm=function(x,y){
+  perm=sample(x)
+  abs(mean(y[perm==0])-mean(y[perm==1]))
+}
+N=10000
+t=replicate(N, one.perm(Outcome,Mvalue))
+pp=mean(t>tobs)
+unlist(list(p_permutation=pp))
+```
+
+
+
+## Practical remarks
+
+* Which N? We can compute a CI for p in the usual way:
+```{r}
+c(pp-1.96*sqrt(p*(1-p)/N),pp+1.96*sqrt(p*(1-p)/N))
+```
+* Be careful that the smallest possible p is $1/N$ $\Rightarrow$ in multiple testing $N$ must be very large
+* Useful strategy: start with relatively small $N$ and increase to large numbers only if p is small and you need more precision  
+* It is a good idea to store all data replicates in a data frame, one replicate per column and then use, 
+```{r, eval=FALSE}
+apply(replicates,2,function_for_stat)
+```
+
+
+## A more interesting application: minimum p value
+
+* Suppose we want to test case/control association with a block of 10 SNPs. 
+* We can start by doing a Fisher exact test for each individual SNP, resulting in a p value $p_i$, and then we take the min p value as our statistic:
+$$
+T=\min_{i=1,\ldots,10} p_i
+$$
+* We need to know the distribution of this statistic if we want to calculate a global p value! 
+* This is not a standard distribution, so we turn to permutations 
+
+
+
+
+
+## Simulations outside testing: the bootstrap
+
 
 ## power computing
 
