@@ -278,8 +278,24 @@ $\Rightarrow$ we can calculate the <font color='turquoise'>empirical power:</fon
 
 ## Why it works
 
-Law of large numbers
+__Law of large numbers__
 
+If $Y_1,\ldots,Y_N$ are an i.i.d. sample from distribution $G$ then
+$$
+\frac{1}{N}\sum_{i=1}^NY_i \xrightarrow{P} E[Y]
+$$
+
+In our case we have:
+
+* $T_1\ldots,T_N$ are an i.i.d. sample from the distribution $G$ of $T$
+
+* The indicator variables $\mathbb{1}_{T_1>T_{obs}},\ldots,\mathbb{1}_{T_N>T_{obs}}$ are an i.i.d. sample from a Bernoulli whose expected value is the p value. 
+
+* Hence:
+$$
+\frac{1}{N}\sum_{i=1}^N \mathbb{1}_{T_i>T_{obs}} = \frac{\#\{ T \mbox{ realizations }  > T_{obs}\}}{N} \xrightarrow{P} p
+$$
+and $\hat{p}$ is a consistent estimator of $p$
 
 
 ## (Silly) application to our example: empirical p 
@@ -348,7 +364,7 @@ $$
 * Let $T$ be our statistics, eg $T=|\bar{x}-\bar{y}|$
 
 <font color='magenta'>Key fact:</font> H0 is equivalent to say that _the observations are independent from the case/control status_<br>
-$\Rightarrow$ we can sample the data distribution under H0 simply by shuffling the case control status: <font color='turquoise'>each permutation is a data replicate</font> 
+$\Rightarrow$ we can sample the data distribution under H0 simply by <font color='turquoise'>shuffling the case control status:</font> each permutation is a data replicate 
 
 
 ## Example
@@ -373,7 +389,7 @@ unlist(list(p_permutation=pp))
 ```{r}
 c(pp-1.96*sqrt(p*(1-p)/N),pp+1.96*sqrt(p*(1-p)/N))
 ```
-* Be careful that the smallest possible p is $1/N$ $\Rightarrow$ in multiple testing $N$ must be very large
+* Be careful that the smallest possible p is $1/N$ $\Rightarrow$ $N$ must be very large in multiple testing
 * Useful strategy: start with relatively small $N$ and increase to large numbers only if p is small and you need more precision  
 * It is a good idea to store all data replicates in a data frame, one replicate per column and then use, 
 ```{r, eval=FALSE}
@@ -391,11 +407,39 @@ $$
 * We need to know the distribution of this statistic if we want to calculate a global p value! 
 * This is not a standard distribution, so we turn to permutations 
 
+## Example
 
+We load the data
+```{r}
+load('data/ex_snps.Rda')
+head(cbind(pheno,geno))
+```
 
+We calculate p values $p_{obs,i}$ for individual SNPs and compute $T_{obs}=\min_{i=1,\ldots,10} p_{obs,i}$
+```{r}
+pvalues_obs=c(NA,10)
+for(snp in 1:10) pvalues_obs[snp]=fisher.test(pheno,geno[,snp])$p
+```
 
-
-## Simulations outside testing: the bootstrap
+##
+We calculate p values $p_i$ for each permutation $r$ and compute $T^r=\min_{i=1,\ldots,10} p^r_i$
+```{r,eval=FALSE}
+T_obs=min(pvalues_obs)
+pvalues=matrix(NA,nrow=10,ncol=1000) #stores the SNP p values in columns, one per replicate
+for(repl in 1:1000){ perm=sample(pheno)
+  for(snp in 1:10){
+    pvalues[snp,repl]=fisher.test(perm,geno[,snp])$p
+  }
+}
+T_sample=apply(pvalues,2,min)  
+```
+At last we calculate the empirical p value for $T$ as 
+$$
+\frac{\# \{T^r < T_{obs}\}}{\# \mbox{ replicates}}
+$$
+```{r,eval=FALSE}
+mean(T_sample<T_obs)
+```
 
 
 ## power computing
@@ -405,6 +449,15 @@ $$
 - waffect
     + idea of the algorithm
     + example of applications from the tutorial
+    
+    
+
+## Simulations outside testing: the bootstrap
+To do 
+
+# Applications to the multiple testing problem
+
+
 
 ## Multiple testing
 
@@ -413,3 +466,6 @@ $$
 - Example: theoretical and empirical fwer with dependent and independent tests
 - Empirical alternative: permutation -> compute statistics for each marker -> compute p-values for each marker -> take the min, repeat from 'permutation' -> distribution of smallest p-values -> adjusted P value (see [sham14], non basta prendere come threshold il 0.05-quantile della distribuzione empirica?)
 - FDR with independent and dependent data: idea of the proof? 
+
+
+
