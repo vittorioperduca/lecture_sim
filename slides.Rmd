@@ -289,13 +289,12 @@ In our case we have:
 
 * $T_1\ldots,T_N$ are an i.i.d. sample from the distribution $G$ of $T$
 
-* The indicator variables $\mathbb{1}_{T_1>T_{obs}},\ldots,\mathbb{1}_{T_N>T_{obs}}$ are an i.i.d. sample from a Bernoulli whose expected value is the p value. 
+* The indicator variables $\mathbb{1}_{T_1>T_{obs}},\ldots,\mathbb{1}_{T_N>T_{obs}}$ are an i.i.d. sample from a Bernoulli distribution whose expected value is the p value 
 
 * Hence:
 $$
 \frac{1}{N}\sum_{i=1}^N \mathbb{1}_{T_i>T_{obs}} = \frac{\#\{ T \mbox{ realizations }  > T_{obs}\}}{N} \xrightarrow{P} p
 $$
-and $\hat{p}$ is a consistent estimator of $p$
 
 
 ## (Silly) application to our example: empirical p 
@@ -333,27 +332,28 @@ legend(x='topleft',lwd=2:1,legend=c(expression(T[alpha]),'real dist'),col=c('red
 
 Simulations are particularly useful for non-parametric tests ($\neq$ previous example). <br> 
 
-In this case, drawing a sample of the statistic under a given hypothesis requires two steps:
+In this case, drawing a sample of the statistic under a given hypothesis requires two steps (Monte Carlo simulations):
 
-- simulate <font color='magenta'>$N$ data raplicates</font> according to the hypothesis
+- simulate <font color='magenta'>$N$ data replicates</font> according to the hypothesis
 - for each replicate $i$, calculate the statistic realization $T_i$ 
 
 Afterwich, the p value and power are estimated as above.
 
 
-# Simulations for case/control testing 
-
 
 ## Focus on permutation-like methods
 
-In the following we focus on two ways of generating data replicates for testing whether two groups (eg cases vs controls) are the same:
+In the following we focus on ways of generating data replicates for testing whether two groups (eg cases vs controls) are the same:
 
-1. <font color='turquoise'>Permutations</font> for simulating under H0 (classic)
-2.  <font color='turquoise'>Weighted permutations</font> for simulating under H1 (more original)
+1. Empirical p values through <font color='turquoise'>permutations</font> (classic) 
+2. Empirical power through
+    + Monte Carlo simulations (classic)
+    + <font color='turquoise'>Weighted permutations</font> (more original)
+
+# Simulations for case/control testing: emprirical p values
 
 
-
-## Permutations 
+## Empirical p values trhough permutations 
 
 * Suppose we have observations $x_1,\ldots,x_{n_0}\sim F_1$ for controls and observations $y_1,\ldots,y_{n_1}\sim F_2$ for cases
 * We want to test 
@@ -366,8 +366,17 @@ $$
 <font color='magenta'>Key fact:</font> H0 is equivalent to say that _the observations are independent from the case/control status_<br>
 $\Rightarrow$ we can sample the data distribution under H0 simply by <font color='turquoise'>shuffling the case control status:</font> each permutation is a data replicate 
 
-
 ## Example
+
+Back to the Mvalue example with $T=\bar{M}_{controls}-\bar{M}_{cases}$
+
+
+<center>
+<img src="figures/diff.png"  width="600" height="400">
+</center>
+
+
+## 
 
 ```{r}
 tobs=abs(mean(Mvalue[Outcome==0])-mean(Mvalue[Outcome==1]))
@@ -383,7 +392,7 @@ unlist(list(p_permutation=pp))
 
 
 
-## Practical remarks
+## Remarks
 
 * Which N? We can compute a CI for p in the usual way:
 ```{r}
@@ -395,7 +404,7 @@ c(pp-1.96*sqrt(p*(1-p)/N),pp+1.96*sqrt(p*(1-p)/N))
 ```{r, eval=FALSE}
 apply(replicates,2,function_for_stat)
 ```
-
+* Important for the following: permutations preserve the fixed number of cases and controls!
 
 ## A more interesting application: minimum p value
 
@@ -407,7 +416,17 @@ $$
 * We need to know the distribution of this statistic if we want to calculate a global p value! 
 * This is not a standard distribution, so we turn to permutations 
 
+
+
 ## Example
+
+Mock genotypic data for 10 SNPs, 250 cases and 250 controls
+
+<center>
+<img src="figures/min.png"  width="1000" height="400">
+</center>
+
+##
 
 We load the data
 ```{r}
@@ -425,35 +444,146 @@ for(snp in 1:10) pvalues_obs[snp]=fisher.test(pheno,geno[,snp])$p
 We calculate p values $p_i$ for each permutation $r$ and compute $T^r=\min_{i=1,\ldots,10} p^r_i$
 ```{r,eval=FALSE}
 T_obs=min(pvalues_obs)
-pvalues=matrix(NA,nrow=10,ncol=1000) #stores the SNP p values in columns, one per replicate
-for(repl in 1:1000){ perm=sample(pheno)
+pvalues0=matrix(NA,nrow=10,ncol=1000) #stores the SNP p values in columns, one per replicate
+for(repl in 1:1000){ 
+  perm=sample(pheno)
   for(snp in 1:10){
-    pvalues[snp,repl]=fisher.test(perm,geno[,snp])$p
+    pvalues0[snp,repl]=fisher.test(perm,geno[,snp])$p
   }
 }
-T_sample=apply(pvalues,2,min)  
+T_sample0=apply(pvalues0,2,min)  
 ```
 At last we calculate the empirical p value for $T$ as 
 $$
 \frac{\# \{T^r < T_{obs}\}}{\# \mbox{ replicates}}
 $$
 ```{r,eval=FALSE}
-mean(T_sample<T_obs)
+mean(T_sample0<T_obs)
 ```
 
 
-## power computing
+# Simulations for case/control testing: empirical power
 
-- Distribution under H1 is most of the times not known
-- Case-control studies: possible empirical approaches
-- waffect
-    + idea of the algorithm
-    + example of applications from the tutorial
+## Empirical power with a focus on large scale association studies
+
+
+- Apart from a few simple situations (eg  t-test, $\chi^2$-test...), the distribution of the test statistics $T$ under H1 is not known, neither exactly nor asymptotically
+- This is typical of multi markers methods for GWAS and other large scale genetic studies
+- In these cases power is usually estimated by analaysing many data replicates under H1
+- In association studies H1 is the assumption of a <font color='magenta'>disease model</font> ie a penetrance function
+- In symbols:
+    + $n_1=$ number of cases, $n_0$ number of controls, $n=n_0+n_1$ 
+    + $X^j_i=$ genotype of individual $i$ for market $j$
+    + $Y_i=$ phenotype (case/control) of $i$
+    + H1: penetrance function <font color='magenta'>$\pi_i=Pr(Y_i=1|X_i)$</font> 
+
+## Which simulations under H1?
+
+* Important constraint: simulations should all preserve the fixed number of cases and control
+
+* Naif protocol:
+    + draw individual phenotypes given their real genotypes by sampling $Y_i|X_i\sim\mathcal{B}(\pi_i)$
+    + Problem: $\pi_i$ is small $\Rightarrow$ we end up with very few cases!
+    
+* Two alternative approaches:
+
+    1. Simulation of both genotypes and phenotypes for a very large population:
+        + Simulate $m$ genotpic datasets, with $m>>n$
+        + For each individual of this large population draw $Y_i|X_i$ as above
+        + Hope that $m$ is large enough to have enough cases
+    2. Simulation of genotypes given fixed phenotypes: $X_i|Y_i$ has a multinomial distribution with parameter $\propto \pi_i\times Pr(X_i)$. Approach implemented in HAPGEN <font size='3'>[Zu, S. (2011). Bioinformatics, 27(16), 2304-2305]</font>
     
     
+* Common problem: a genotypic model is needed! Not a problem for independent markers but what about mimicking LD patterns?
 
-## Simulations outside testing: the bootstrap
-To do 
+
+## Problems with first approach (i)
+
+Slow, requires a lot of memory 
+
+<center>
+<img src="figures/sim_cases.png"  width="500" height="400">
+</center>
+
+<font size=2>Ref: Alarcon, F. and Perduca, V. Work in progress</font>
+
+
+## Problems with first approach (ii)
+
+Attention: raising the disease prevalence is not an option as this will bias the power estimates
+
+<center>
+<img src="figures/roc.pdf"  width="500" height="400">
+</center>
+
+<font size=2>Ref: Perduca, V. (2012). Hum Hered, 73:95-104.</font>
+
+
+## A possible solution: weighted permutations
+
+* __waffect__ is a recently introduced algorithm that affects the phenotype of each individual 
+    + conditionally on genotype
+    + according to the fixed disease model
+    + in a way that preserves the fixed number of cases
+* Advantages:
+    + fast, only phenotypes are simulated
+    + one can use original genotypic datasets
+    + R package available
+    + One simple function, only input are the probabilities $\pi_i$
+    
+<font size=2>Ref: Perduca, V. (2012). Hum Hered, 73:95-104.</font>
+
+## How it works
+
+* waffect is based on a Belief Propagation algorithm for a simple HMM-like graphical model
+* idea is to sample recursively phenotypes. Let $Z_i$ the number of cases affected for individuals $1,\ldots,i$, then the steps are 
+    + draw $Y_1$ conditionally on the fixed total number of cases $Z_n=n_1$
+    + draw $Y_2$ conditionnally on $Z_1$ and $Z_n=n_1$
+    + drawn $Y_3$ conditionally on $Z_2$ and $Z_n=n1$
+    + etc
+    
+<center>
+<img src="figures/BN.png"  width="412" height="150">
+</center>
+
+## Example
+
+* We calculate the empirical power of the test looking for a signal in the 10 SNPs by simulating phenotypes under H0 using waffect
+* Fr H1 we take an additive disease model with prevalence $f_0=0.1$ and OR $=1.6$ on SNP 8: 
+$$
+\pi_i= \frac{1}{1+\exp(-\log(f0)-\log(OR)\times snp_8)}
+$$
+* Recall that 
+    + $T=\min_{i=1,\ldots,10} p_i$
+    + $\hat{\mbox{power}} = \frac{\#\{ \mbox{ H1 } T \mbox{ realizations }  > T_\alpha\}}{N}$.  
+
+We first define a disease model for H1 and calculate $T_\alpha$ using the sample of $T$ under H0 previously calculated
+```{r,eval=FALSE}
+pi=1/(1+exp(-log(0.1)-log(1.6)*geno[,8]))
+threshold=quantile(T_sample0,probs=0.05)
+```
+
+##
+
+We use waffect to simulate replicates with 250 cases and 250 controls according to $\pi_i$
+
+```{r,message=FALSE,eval=FALSE}
+require(waffect)
+pvalues1=matrix(NA,nrow=10,ncol=1000) #stores the SNP p values in columns, one per replicate
+for(repl in 1:1000){ 
+  wperm=waffect(prob=pi,count=250,label=c(1,0))
+  for(snp in 1:10){
+    pvalues1[snp,repl]=fisher.test(wperm,geno[,snp])$p
+  }
+}
+T_sample1=apply(pvalues1,2,min)  
+```
+
+We estimate the power
+```{r,eval=FALSE}
+mean(T_sample1<threshold)
+```
+
 
 # Applications to the multiple testing problem
 
