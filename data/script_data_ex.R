@@ -20,7 +20,7 @@ write.table(example_methy,file='data/ex_methy.csv',sep=',',col.names=T,row.names
 
 
 #############
-# Example SNPs
+# Example independent SNPs
 #############
 
 require(waffect)
@@ -47,3 +47,28 @@ one_test=function(x) fisher.test(x,y=pheno)$p
 (pvalues=apply(geno,2,one_test))
 plot(-log10(pvalues),type='h')
 abline(h=-log10(0.05/10),lty=2)
+
+
+#############
+# Example dependent SNPs
+#############
+require(corrplot)
+n=500
+
+maf=0.2; snp1=sample(0:2,size=n,replace=TRUE,prob=c((1-maf)^2,2*maf*(1-maf),maf^2))
+snp2=snp1; snp2[sample(x=1:n,150,replace=FALSE)]=1
+snp3=snp2; snp3[sample(x=1:n,100,replace=FALSE)]=0
+maf=0.1; snp4=sample(0:2,size=n,replace=TRUE,prob=c((1-maf)^2,2*maf*(1-maf),maf^2))
+snp5=snp4; snp5[sample(x=1:n,150,replace=FALSE)]=1
+
+#maf=0.3; snp6=sample(0:2,size=n,replace=TRUE,prob=c((1-maf)^2,2*maf*(1-maf),maf^2))
+snp6=snp4; snp6[sample(x=1:n,150,replace=FALSE)]=1
+snp7=snp6; snp7[sample(x=1:n,150,replace=FALSE)]=1
+snp8=snp7; snp8[sample(x=1:n,100,replace=FALSE)]=0
+maf=0.1; snp9=sample(0:2,size=n,replace=TRUE,prob=c((1-maf)^2,2*maf*(1-maf),maf^2))
+snp10=snp9; snp10[sample(x=1:n,150,replace=FALSE)]=1
+
+geno_d=2-data.frame(SNP1=snp1,SNP2=snp2,SNP3=snp3,SNP4=snp4,SNP5=snp5,SNP6=snp6,SNP7=snp7,SNP8=snp8,SNP9=snp9,SNP10=snp10)
+corrplot(corr=cor(geno_d),method='square',type='upper')
+
+save(geno_d,pheno,file='data/ex_snps_d.Rda')

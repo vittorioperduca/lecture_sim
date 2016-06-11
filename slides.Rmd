@@ -411,7 +411,7 @@ apply(replicates,2,function_for_stat)
 * Suppose we want to test case/control association with a block of 10 SNPs. 
 * We can start by doing a Fisher exact test for each individual SNP, resulting in a p value $p_i$, and then we take the min p value as our statistic:
 $$
-T=\min_{i=1,\ldots,10} p_i
+T=\min_{j=1,\ldots,10} p_j
 $$
 * We need to know the distribution of this statistic if we want to calculate a global p value! 
 * This is not a standard distribution, so we turn to permutations 
@@ -434,14 +434,14 @@ load('data/ex_snps.Rda')
 head(cbind(pheno,geno))
 ```
 
-We calculate p values $p_{obs,i}$ for individual SNPs and compute $T_{obs}=\min_{i=1,\ldots,10} p_{obs,i}$
+We calculate p values $p_{obs,j}$ for individual SNPs and compute $T_{obs}=\min_{j=1,\ldots,10} p_{obs,j}$
 ```{r}
 pvalues_obs=c(NA,10)
 for(snp in 1:10) pvalues_obs[snp]=fisher.test(pheno,geno[,snp])$p
 ```
 
 ##
-We calculate p values $p_i$ for each permutation $r$ and compute $T^r=\min_{i=1,\ldots,10} p^r_i$
+We calculate p values $p_j$ for each permutation $r$ and compute $T^r=\min_{j=1,\ldots,10} p^r_j$
 ```{r,eval=FALSE}
 T_obs=min(pvalues_obs)
 replicates0=matrix(NA,nrow=500,ncol=1000) #stores one permutation per column for later use
@@ -556,7 +556,7 @@ $$
 \pi_i= \frac{1}{1+\exp(-\log(f0)-\log(OR)\times snp_8)}
 $$
 * Recall that 
-    + $T=\min_{i=1,\ldots,10} p_i$
+    + $T=\min_{j=1,\ldots,10} p_j$
     + $\hat{\mbox{power}} = \frac{\#\{ \mbox{ H1 } T \mbox{ realizations }  > T_\alpha\}}{N}$.  
 
 We first define a disease model for H1 and calculate $T_\alpha$ using the sample of $T$ under H0 previously calculated
@@ -603,7 +603,7 @@ $$
 
 * If all tests are independent (not realistic beacause of LD):
 $$
-FWER = Pr(\exists ~~1 \leq j \leq p \mbox{ t.q. } H0_{j} \mbox{ rejected } | \forall~~ j~ H0_{j} \mbox{ holds})  = 1-(1-\alpha)^p
+FWER = Pr(\exists ~1 \leq j \leq p \mbox{ s.t. } H0_{j} \mbox{ rejected } | \forall~ j H0_{j} \mbox{ holds})  = 1-(1-\alpha)^p
 $$
 * If the test are dependent: FWER $<1-(1-\alpha)^p$ 
 * We avoid type I error rate inflation by doing each test at a level $\alpha$ such that the FWER is $\leq \alpha'$ where $\alpha'$ is a fixed threshold, for instance $\alpha'=0.05$ 
@@ -642,30 +642,53 @@ $$
 ## Example: independent SNPs
 
 * The SNPs in the previous datasets are independent 
-* We show that in this case, the FWER estimate if we test each SNP at the threshold 
-$$
-\alpha=\frac{\alpha'}{p}=\frac{0.05}{10}=0.005
-$$  
-is $0.05$
 * To estimate the FWER we use the previously generated data replicates under H0 
 * For each replicate, we count a false positive if at least one p value is $<$ 0.005 ie if their min is $<0.05$
+* We show that if we test each SNP at the threshold 
+$$
+\alpha=\frac{\alpha'}{p}=\frac{0.05}{10}=0.005,
+$$  
+the FWER estimate is $0.05$
 
 ```{r,eval=FALSE}
 mean(apply(pvalues0,2,min)<0.05/10)
 ```
 
-## Example: dependent SNP
+## Example: correlated SNPs
 
-We repeat the very same analysis using a dataset of 10 correlated SNPs and show that the FWER estimate is lower than $\alpha'=0.05$
+Same analysis with 10 correlated SNPs:
+```{r,message=FALSE,fig.width=4,fig.height=3}
+load('data/ex_snps_d.Rda')
+require(corrplot); corrplot(corr=cor(geno_d),method='square',type='upper',tl.pos='n')
+```
 
-FARE!
+## 
+
+
+```{r,eval=FALSE}
+pvalues0_d=matrix(NA,nrow=10,ncol=1000) #stores the SNP p values in columns, one per replicate
+for(repl in 1:1000){ 
+  perm=sample(pheno)
+  for(SNP in 1:10){
+    pvalues0_d[SNP,repl]=fisher.test(perm,geno_d[,SNP])$p
+  }
+}
+T_sample0_d=apply(pvalues0_d,2,min) 
+```
+
+This time the FWER estimate is lower than $\alpha'=0.05$:
+
+```{r,eval=FALSE}
+mean(apply(pvalues0_d,2,min)<0.05/10)
+```
+
 
 ## Several approaches to overcome the problem
 * Several methods have been proposed to choose $q$:
     + $q=$ number of LD blocks
     + eigenvalues  of the correlation matrix of the SNP allele counts
     
-* Several studies based on HapMap data suggested a threshold of $5\times 10^{-8}$ for European Studies.
+* Several studies based on HapMap data suggested a threshold of $5\times 10^{-8}$ for European studies
 
 * In the following we discuss an alternative based on permutations
 
@@ -674,11 +697,52 @@ FARE!
 <font size=2>Ref. Sham, P. C. (2014). Nat. Rev. Genet, 15(5), 335-346. </font>
 
 
+## Permutation procedure for FWER control
 
-## Multiple testing
+* Obtain the empirical distribution of $T=min_{j=1,\ldots,10} p_j$: 
 
-- Example: theoretical and empirical fwer with dependent and independent tests
-- Empirical alternative: permutation -> compute statistics for each marker -> compute p-values for each marker -> take the min, repeat from 'permutation' -> distribution of smallest p-values -> adjusted P value (see [sham14], non basta prendere come threshold il 0.05-quantile della distribuzione empirica?)
+<center>
+<img src="figures/min.png"  width="660" height="240">
+</center>
 
+* Take the $\alpha'$-quantile <font color='magenta'>$T_{\alpha'}$</font> 
+* <font color='magenta'>Test each SNP at the threshold $T_{\alpha'}$</font>
+
+
+## Why it works
+
+__Proof.__
+$$
+\begin{align}
+FWER & = Pr_{H0}(\exists j \mbox{ s.t. } H0_{j} \mbox{ rejected })  \\
+      & = Pr_{H0}(\exists j \mbox{ s.t. } p_{obs,j}< T_{\alpha'}) \\
+      & = Pr_{H0}(min_j p_{obs,j} < T_\alpha') \\
+      & = Pr_{H0}(T<T_{\alpha'})=\alpha'.
+\end{align}
+$$
+
+\
+
+\
+
+Equivalently, define for each SNP $j$ the <font color='turquoise'>empirical adjusted p value</font>
+$$
+p^{adj}_j=\frac{r+1}{N+1}
+$$
+where $r$ is the number of $T^r$ greater than $p_{obs,i}$, and <font color='turquoise'>reject H0$_i$ if $p^{adj}_i<\alpha'$</font>
+
+
+## Example: back to the 10 correlated SNPs
+
+We compute $T_{\alpha'}$ 
+```{r,eval=FALSE}
+Tap=quantile(T_sample0_d,probs = 0.05)
+unlist(list(threshold_perm=Tap))
+```
+
+The estimate of the FWER is $\alpha'=0.05$
+```{r,eval=FALSE}
+mean(apply(pvalues0_d,2,min)<Tap)
+```
 
 
