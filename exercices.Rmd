@@ -20,3 +20,13 @@ http://users.dickinson.edu/~richesod/latex/latexcheatsheet.pdf
 ****
 
 ### Exercice 1
+
+```{r}
+load('data/exercise_geno.Rda')
+head(geno[1:10,1:10])
+p=c()
+for(snp in 1:ncol(geno)) p=c(p,fisher.test(pheno,geno[,snp])$p)
+plot(-log10(p),type='h')
+abline(h=-log10(0.05/ncol(geno)),col='red')
+abline(v=150, col='blue',lty=2); abline(v=750,col='blue',lty=2)
+```
