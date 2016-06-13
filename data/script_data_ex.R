@@ -72,3 +72,19 @@ geno_d=2-data.frame(SNP1=snp1,SNP2=snp2,SNP3=snp3,SNP4=snp4,SNP5=snp5,SNP6=snp6,
 corrplot(corr=cor(geno_d),method='square',type='upper')
 
 save(geno_d,pheno,file='data/ex_snps_d.Rda')
+
+
+#################
+# Exercice, 1000 genomes data
+#################
+require(waffect)
+
+system('plink --file data/chrX_629 --recodeA --out data/geno')
+geno=read.table('data/geno.raw',header=TRUE)
+geno=geno[,7:1007]
+
+f0_s=1.2; OR_s=1.5
+pi_s=1/(1+exp(-log(f0)-log(OR)*geno[,150]-log(OR)*geno[,750]))
+pheno=waffect(prob=pi,label=c(1,0),count=315)
+
+save(geno,pheno, pi_s, f0_s, OR_s, file='data/exercise_geno.Rda')

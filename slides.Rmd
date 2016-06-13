@@ -17,21 +17,18 @@ output:
 ## Contents
 
 
-* Simulations: when distribution is not known
-     + empirical p-values
-     + empirical power
-     
-* Bootstrap
-  
-* Multiple testing: a general problem which can be addressed with simulations
-    + FWER 
-    + theoretical correction for independent tests 
-    + correlated tests and permutations  
-    + other approaches ie genomic control, FDR?
-
-* Very quick insights on my research
-    + weighted permutations for simulating under H1
-    + distribution of score test under H0 and H1
+* Quick review about hypothesis testing:
+    + p values? power? 
+    + detour to the replicability crisis
+* Rationale behind simulations for hypothesis testing 
+    + when are simulations worth bothering with?
+* Permutations for estimating p values in case/control testing
+    + a useful example
+* Simulations for estimating empirical power in case/control testing
+    + current methods
+    + weighted permutations
+* Application to multiple testing 
+    + controlling the FWER with permutations
 
 # Hypothesis testing: a quick review
 
