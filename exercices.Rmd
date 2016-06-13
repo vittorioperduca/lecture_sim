@@ -1,0 +1,19 @@
+---
+title: "Simulations for statistical testing, hands on exercices"
+author: "Vittorio Perduca (Univ. Paris Descartes)"
+date: "UiT Tromsø, June 2016"
+output: html_document
+---
+
+
+****
+### Some instructions about R Markdown
+* R Markdown is an authoring format developed by RStudio which allows to easily build reports with text sections and embedded R code chunks. Text sections are written using simple Markdown syntax, and therefore .Rmd files can be compiled in html, pdf or even word format. 
+* R Markdown is an effective way to write reproducible research documents as output files are automatically regenerated whenever underlying R code or data changes. For instance, if one wants to change an R plot, it suffices to change the underlying R chunk.
+* Useful documentation and tutorials can be found through the __Help__ menu or online \
+http://rmarkdown.rstudio.com/authoring_basics.html \
+for useful documentation.
+* If you have a TeX distribution on your machine, you can typeset mathematical formulas in text chunks using LaTeX syntax, see for instance \
+http://users.dickinson.edu/~richesod/latex/latexcheatsheet.pdf
+
+****

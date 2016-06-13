@@ -2,7 +2,7 @@
 title: "Simulations for statistical testing"
 subtitle: with applications to multiple tests
 author: "Vittorio Perduca (Univ. Paris Descartes)"
-date: "June 2016"
+date: "UiT Tromsø, June 2016"
 output:
   ioslides_presentation:
     fig_height: 4
