@@ -21,12 +21,105 @@ http://users.dickinson.edu/~richesod/latex/latexcheatsheet.pdf
 
 ### Exercice 1
 
-```{r}
+```{r,eval=FALSE}
 load('data/exercise_geno.Rda')
 head(geno[1:10,1:10])
-p=c()
-for(snp in 1:ncol(geno)) p=c(p,fisher.test(pheno,geno[,snp])$p)
-plot(-log10(p),type='h')
+p=ncol(geno)
+#
+
+p_fun=function(x,y) fisher.test(x,y)$p
+pvalues=apply(geno,2,p_fun,y=pheno)
+
+#for(snp in 1:ncol(geno)) p=c(p,fisher.test(pheno,geno[,snp])$p)
+plot(-log10(pvalues),type='h')
 abline(h=-log10(0.05/ncol(geno)),col='red')
 abline(v=150, col='blue',lty=2); abline(v=750,col='blue',lty=2)
+
+#
+N=100
+#replicates0=matrix(NA,nrow=n,ncol=N)
+#pvalues0=matrix(NA,nrow=p,ncol=N) 
+#for(repl in 1:N){ 
+#  cat(repl,'')
+#  perm=sample(pheno)
+#  for(SNP in 1:p){
+#    pvalues0[SNP,repl]=fisher.test(perm,geno[,SNP])$p
+#  }
+#}
+#T0=apply(pvalues0,2,min)
+#Tap=quantile(T0,probs=0.05)
+#abline(h=-log10(Tap),col='green')
+#
+library(parallel)  
+library(microbenchmark)
+
+cores <- detectCores() 
+print(cores)
+
+one.sim=function(i){
+  perm=sample(pheno)
+  return(min(apply(geno,2,p_fun,y=perm)))
+}
+
+min.pvalue <- mclapply(1:N, one.sim, mc.cores=cores)
+min.pvalue=as.numeric(min.pvalue)
+threshold=quantile(as.numeric(min.pvalue),probs=0.05)
+abline(h=-log10(threshold),col='pink')
+#
+#perf=microbenchmark(mclapply(1:2, one.sim, mc.cores=cores),lapply(1:2, one.sim),times=100)
+#
+which(pvalues<=0.05/ncol(geno))
+which(pvalues<=threshold)
+#
+
+###########
+#Adjusted p values
+###########
+#adj_pvalues_perm=rep(NA,p)
+#for(i in 1:p){
+#  adj_pvalues_perm[i]=mean(pvalues[i]>min.pvalue) #(length(which(pvalues[i]>min.pvalue))+1)/(p+1)
+#}
+#adj_pvalues_perm
+#which(adj_pvalues_perm<=0.05)
+adj_pvalues_perm=lapply(pvalues,FUN=function(x,y){mean(x>y)},y=min.pvalue)
+which(as.numeric(adj_pvalues_perm)<=0.05)
+
+#########
+# Bonferroni with p.adjust()
+#########
+adj_pvalues=p.adjust(p=pvalues,method='bonferroni') 
+adj_pvalues[158]
+pvalues[158]*ncol(geno)
+which(adj_pvalues<=0.05)
+
+#########
+# Bonferroni with multtest (Bioconductor)
+#########
+#source("https://bioconductor.org/biocLite.R")
+#biocLite("multtest")
+require(multtest)
+
+adj_pvalues2 = mt.rawp2adjp(pvalues, proc='Bonferroni') #capital letter!
+pp=adj_pvalues2$adjp[order(adj_pvalues2$index),2] #order(adj_pvalues2$index)
+pvalues[158]*ncol(geno)
+pp[158]
+
+###########
+# Permutation with multtest
+##########
+#Complique
+
+#########
+#Power study
+#########
+require(waffect)
+one.sim1=function(i){
+  perm1=waffect(pi_s,label=c(1,0),count=315)
+  out=fisher.test(perm1,geno[,150])$p
+  return(out)
+}
+pvalue_750=mclapply(1:N, one.sim1, mc.cores=cores)
+pvalue_750=as.numeric(pvalue_750)
+mean(pvalue_750<=threshold)
+mean(pvalue_750<=0.05/p)
 ```

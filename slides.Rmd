@@ -347,7 +347,7 @@ In the following we focus on ways of generating data replicates for testing whet
     + Monte Carlo simulations (classic)
     + <font color='turquoise'>Weighted permutations</font> (more original)
 
-# Simulations for case/control testing: emprirical p values
+# Simulations for case/control testing: empirical p values
 
 
 ## Empirical p values trhough permutations 
@@ -696,7 +696,7 @@ mean(apply(pvalues0_d,2,min)<0.05/10)
 
 ## Permutation procedure for FWER control
 
-* Obtain the empirical distribution of $T=min_{j=1,\ldots,10} p_j$: 
+* Obtain the empirical distribution of $T=\min_{j=1,\ldots,10} p_j$: 
 
 <center>
 <img src="figures/min.png"  width="660" height="240">
@@ -726,7 +726,7 @@ Equivalently, define for each SNP $j$ the <font color='turquoise'>empirical adju
 $$
 p^{adj}_j=\frac{r+1}{N+1}
 $$
-where $r$ is the number of $T^r$ greater than $p_{obs,i}$, and <font color='turquoise'>reject H0$_i$ if $p^{adj}_i<\alpha'$</font>
+where $r$ is the number of $T^r$ smaller than $p_{obs,i}$, and <font color='turquoise'>reject H0$_i$ if $p^{adj}_i<\alpha'$</font>
 
 
 ## Example: back to the 10 correlated SNPs
