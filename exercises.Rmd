@@ -1,0 +1,134 @@
+---
+title: "Simulations for statistical testing, hands on exercices"
+author: "Vittorio Perduca (Univ. Paris Descartes)"
+date: "UiT Tromsø, June 2016"
+output: html_document
+---
+
+
+****
+### Some instructions about R Markdown
+* R Markdown is an authoring format developed by R Studio which allows to easily build reports with text sections and embedded R code chunks. Text sections are written using simple Markdown syntax and therefore .Rmd files can be compiled in html, pdf or even word format. 
+* Work on the .Rmd file and compile the output file by pushing the  __Knit HML__ button. 
+* R Markdown is an effective way to write reproducible research documents as output files are automatically regenerated whenever underlying R code or data changes. For instance, changing an R simply requires changing the underlying R chunk.
+* Useful documentation and tutorials can be found through the __Help__ menu or online \
+http://rmarkdown.rstudio.com/authoring_basics.html \
+for useful documentation.
+* If you have a TeX distribution on your machine, you can typeset mathematical formulas in text chunks using LaTeX syntax, see for instance \
+http://users.dickinson.edu/~richesod/latex/latexcheatsheet.pdf
+
+****
+
+### Exercise 1
+
+In this exercise we will work on real data from the 1000 Genomes Project. Our data set consists of the genotypes of 629 individuals for the first 1000 SNPs with MAF greater than 5% on chromosome X and mock phenotypes. The full data set is stored in file ??? containing a data frame __geno__ and a numeric vector __pheno__. The geonotypic data frame has one SNP per column with additive coding (number of rare alleles). The disease model used for simulating case/control phenotypes is additive with causal SNP X-177061-T (the SNP in column 150) and OR=1.6:
+    $$
+    Pr(P=\mbox{case}|G=x) = \frac{1}{1+\exp(-\log(0.4)-\log(1.6) \cdot x_{150})}
+    $$
+
+1. Load the data. 
+2. For each SNP, compute the p value of Fisher's exact test of association between genotypes and phenotypes. 
+    + Indication: for this question you can write a loop or use __apply()__ .  
+3. Depict all p values in a  Manhattan plot. 
+4. Which SNP would you call positive after Bonferroni's correction for controlling the FWER at 5\%?
+5. Calculate the threshold for controlling the FWER control at 5\% by permutations. 
+    + Indication: You can write a loop as in the slides or use __lapply()__ . In this case write a function which permute the phenotypes, computes all the p values and return their minimum. Then run __lapply__ on 1:N, with N the number of simulations. To speed up computations you can use __mclapply()__ from library __parallel__: it does the same as __lapply()__ but on multiple cores (this will still take around 1-2 minutes for $N=$500 simulations). You can compare the time performance of these approaches using the library __microbenchmark__.   
+6. Calculate the empirical adjusted p values.  
+7. Which SNP would you call positive after controlling the FWER at 5\% by permutations?
+    + Indication: you should obtain the same result by either using the threshold of question 5 or the empirical adjusted p values of question 6.
+
+
+### Solution, exercise 1
+1. We load the data:
+```{r,eval=TRUE}
+load('data/exercise_geno.Rda')
+geno[1:5,1:5]
+p=ncol(geno)
+```
+2. We write a simple function which extract the p value from the output of __fisher.test()__ and we apply it to each column of ___geno__:
+```{r,eval=TRUE}
+p_fun=function(x,y) fisher.test(x,y)$p
+pvalues=apply(geno,2,FUN=p_fun,y=pheno)
+#Alternatively we can do a simple loop:
+#for(snp in 1:ncol(geno)) p=c(p,fisher.test(pheno,geno[,snp])$p)
+```
+3. and 4. We plot $-\log_{10}(\mbox{p values})$ in gray, with the spikes corresponding to the causal makers in red. Then we calculate the threshold for rejection after Bonferroni correction and add it to the plot. Note that no SNP is rejected.
+```{r,eval=TRUE}
+color=rep(8,p); color[150]=2
+plot(-log10(pvalues),type='h',col=color)
+abline(h=-log10(0.05/p),col='red')
+which(pvalues<=0.05/p)
+```
+
+We could also use the built-in function __p.adjust()__ or function __adj_pvalues2()__ from Bioconductor library __multtest__.
+```{r,eval=TRUE,message=FALSE}
+##Bonferroni with p.adjust()
+adj_pvalues=p.adjust(p=pvalues,method='bonferroni') #small letter!
+adj_pvalues[150]
+pvalues[150]*ncol(geno)
+which(adj_pvalues<=0.05)
+##Bonferroni with multtest (Bioconductor)
+#source("https://bioconductor.org/biocLite.R")
+#biocLite("multtest")
+require(multtest)
+adj_pvalues2 = mt.rawp2adjp(pvalues, proc='Bonferroni') #capital letter!
+pp=adj_pvalues2$adjp[order(adj_pvalues2$index),2] #order(adj_pvalues2$index)
+pvalues[150]*ncol(geno)
+pp[150]
+```
+5. We write a function that performs all required operations for a single data replicate (permutation) and then iterate it with __mclapply()__. 
+```{r,eval=TRUE,message=FALSE}
+library(parallel)  
+cores=detectCores()
+cores
+
+one.sim=function(i){
+  perm=sample(pheno)
+  return(min(apply(geno,2,p_fun,y=perm)))
+}
+
+N=10
+min.pvalue=mclapply(1:N, one.sim, mc.cores=cores)
+min.pvalue=as.numeric(min.pvalue)
+threshold=quantile(min.pvalue,probs=0.05)
+plot(-log10(pvalues),type='h',col=color)
+abline(h=-log10(0.05/p),col='red')
+abline(h=-log10(threshold),col='pink')
+```
+
+If we want to compare time perfomance:
+```{r,eval=FALSE,message=FALSE}
+library(microbenchmark)
+perf=microbenchmark(mclapply(1, one.sim, mc.cores=cores),lapply(1, one.sim),times=100)
+```
+6. Empirically adjusting an observed p value $p$ requires calculating the number of _smallest p values_ smaller then $p$ divided by the total number of replicates. 
+```{r,eval=TRUE}
+adj_pvalues_perm=lapply(pvalues,FUN=function(x,y){mean(x>y)},y=min.pvalue)
+```
+7. Note that SNP 158 has p value smaller than the threshold. 
+```{r,eval=TRUE}
+which(pvalues<=threshold)
+which(as.numeric(adj_pvalues_perm)<=0.05)
+```
+
+This is not the causal SNP, however it belongs in the same block of correlation (LD):
+```{r,eval=TRUE,message=FALSE}
+require(corrplot)
+corrplot(corr=cor(geno[,(158-10):(158+10)]),method='square',type='upper',tl.pos='n')
+```
+
+******
+
+### Exercise 2
+
+### Solution, exercise 2
+
+
+```{r}
+require(waffect)
+
+```
+
+
+
+
