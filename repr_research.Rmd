@@ -2,7 +2,15 @@
 title: "Some words about reproducible research"
 author: "Vittorio Perduca (Univ. Paris Descartes)"
 date: "UiT Tromsø, 21 June 2016"
-output: ioslides_presentation
+output:
+  ioslides_presentation:
+    fig_height: 4
+    fig_width: 5
+    keep_md: yes
+    smaller: yes
+    widescreen: yes
+  beamer_presentation: default
+  slidy_presentation: default
 ---
 
 ## Definition
@@ -10,7 +18,7 @@ output: ioslides_presentation
 * _Reproducibility is the ability of an entire experiment or study to be duplicated, either by the same researcher or by someone else working independently._ (Wikipedia)
 * Reproducibility is enhanced if analysis (including source code) and results are saved in well documented, transparent and portable supports so that:
     - anyone can rerun the original analysis
-    - authors do not get drown in a sea of different versions, trying to match the latest script file with the latest text version.
+    - authors do not get lost in a sea of different versions, trying to match the latest script file with the latest text version.
 
 ## Tools for research with statistical contents
 

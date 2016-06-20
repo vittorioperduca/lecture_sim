@@ -1,8 +1,8 @@
 ---
 title: "Simulations for statistical testing"
-subtitle: with applications to multiple tests
+subtitle: 'with applications to multiple tests'
 author: "Vittorio Perduca (Univ. Paris Descartes)"
-date: "UiT Tromsø, June 2016"
+date: "UiT Tromsø, 21 June 2016"
 output:
   ioslides_presentation:
     fig_height: 4
@@ -30,6 +30,17 @@ output:
 * Application to multiple testing 
     + controlling the FWER with permutations
 
+## What this presentation is not about
+
+* Simulation methods are widely used in statistics, here the focus is on simulations for computing p values and power  
+* For instance, we won't talk about MCMC sampling methods
+* If you wonder how to sample standard distributions in R, remember the syntax is __r__ + __R name of ditribution__
+
+```{r}
+runif(1) #draws one value according to the uniform ditribution in [0,1] 
+rnorm(2,mean=0,sd=2) #two values, gaussian distribution N(0,2^2)
+rt(4,df=3) #four values, Student's t distribution with 2 degrees of freedom 
+```
 # Hypothesis testing: a quick review
 
 ##The Neyman-Pearson approach
@@ -255,23 +266,26 @@ legend(x='topleft',lwd=1,col=c('black','red','darkgreen'),
 ## Simulations are useful when...
 
 
-* ...the distribution of $T$ under H0 is not known (analytic derivation of its densities and CDF not possible, large sample approximations not available or not applicable) but it is possible to sample it<br> 
+...the distribution of $T$ under H0 is not known (analytic derivation of its densities and CDF not possible, large sample approximations not available or not applicable) but it is possible to sample it<br> 
 $\Rightarrow$ we can calculate the <font color='Magenta'>empirical p value:</font>
-    1. simulate $N$ realizations of $T$ under H0: 
-    2. estimate p with 
+
+1. simulate $N$ realizations of $T$ under H0: 
+2. estimate p with 
     $$
     \hat{p} = \frac{\#\{ \mbox{ H0 } T \mbox{ realizations }  > T_{obs}\}}{N} 
     $$
 
-* ...the distribution of $T$ under H1 is not known but it is possible to sample it <br>
+## and when..
+
+...the distribution of $T$ under H1 is not known but it is possible to sample it <br>
 $\Rightarrow$ we can calculate the <font color='turquoise'>empirical power:</font>
-    1. simulate $N$ realizations of $T$ under H1
-    2. estimate power with
+
+1. simulate $N$ realizations of $T$ under H1
+2. estimate power with
     $$
     \hat{\mbox{power}} = \frac{\#\{ \mbox{ H1 } T \mbox{ realizations }  > T_\alpha\}}{N}
     $$
-    where $T_\alpha$ is the $(1-\alpha)$-quantile of $T$ under H0.
-    If the distribution of T under H0 is not known, one can sample T under H0 and take the $(1-\alpha)$-quantile.
+where $T_\alpha$ is the $(1-\alpha)$-quantile of $T$ under H0. If the distribution of T under H0 is not known, one can sample T under H0 and take the $(1-\alpha)$-quantile.
 
 ## Why it works
 
@@ -386,6 +400,13 @@ t=replicate(N, one.perm(Outcome,Mvalue))
 pp=mean(t>tobs)
 unlist(list(p_permutation=pp))
 ```
+```{r,echo=FALSE,fig.width=3,fig.height=3}
+hist(t,freq=FALSE,main='Emp. distr. of T, H0')
+abline(v=tobs,col='darkgreen',lwd=2)
+```
+
+
+
 
 
 
@@ -439,7 +460,7 @@ for(snp in 1:10) pvalues_obs[snp]=fisher.test(pheno,geno[,snp])$p
 
 ##
 We calculate p values $p_j$ for each permutation $r$ and compute $T^r=\min_{j=1,\ldots,10} p^r_j$
-```{r,eval=FALSE}
+```{r,eval=TRUE}
 T_obs=min(pvalues_obs)
 replicates0=matrix(NA,nrow=500,ncol=1000) #stores one permutation per column for later use
 pvalues0=matrix(NA,nrow=10,ncol=1000) #stores the SNP p values in columns, one per replicate
@@ -456,7 +477,7 @@ At last we calculate the empirical p value for $T$ as
 $$
 \frac{\# \{T^r < T_{obs}\}}{\# \mbox{ replicates}}
 $$
-```{r,eval=FALSE}
+```{r,eval=TRUE}
 mean(T_sample0<T_obs)
 ```
 
@@ -557,7 +578,7 @@ $$
     + $\hat{\mbox{power}} = \frac{\#\{ \mbox{ H1 } T \mbox{ realizations }  > T_\alpha\}}{N}$.  
 
 We first define a disease model for H1 and calculate $T_\alpha$ using the sample of $T$ under H0 previously calculated
-```{r,eval=FALSE}
+```{r,eval=TRUE}
 pi=1/(1+exp(-log(0.1)-log(1.6)*geno[,8]))
 threshold=quantile(T_sample0,probs=0.05)
 ```
@@ -566,7 +587,7 @@ threshold=quantile(T_sample0,probs=0.05)
 
 We use waffect to simulate replicates with 250 cases and 250 controls according to $\pi_i$
 
-```{r,message=FALSE,eval=FALSE}
+```{r,message=FALSE,eval=TRUE,warning=FALSE}
 require(waffect)
 pvalues1=matrix(NA,nrow=10,ncol=1000) #stores the SNP p values in columns, one per replicate
 for(repl in 1:1000){ 
@@ -579,7 +600,7 @@ T_sample1=apply(pvalues1,2,min)
 ```
 
 We estimate the power
-```{r,eval=FALSE}
+```{r,eval=TRUE}
 mean(T_sample1<threshold)
 ```
 
@@ -600,7 +621,7 @@ $$
 
 * If all tests are independent (not realistic because of LD):
 $$
-FWER = Pr(\exists ~1 \leq j \leq p \mbox{ s.t. } H0_{j} \mbox{ rejected } | \forall~ j H0_{j} \mbox{ holds})  = 1-(1-\alpha)^p
+FWER = Pr(\exists ~1 \leq j \leq p \mbox{ s.t. } H0_{j} \mbox{ rejected } | \forall~ j\, H0_{j} \mbox{ holds})  = 1-(1-\alpha)^p
 $$
 * If the test are dependent: FWER $<1-(1-\alpha)^p$ 
 * We avoid type I error rate inflation by doing each test at a level $\alpha$ such that the FWER is $\leq \alpha'$ where $\alpha'$ is a fixed threshold, for instance $\alpha'=0.05$ 
@@ -628,11 +649,11 @@ $$
 
 ## The problem with Bonferroni correction
 
-* $\frac{\alpha'}{p}$ is very small $\Rightarrow$ lose in power
+* $\frac{\alpha'}{p}$ is very small $\Rightarrow$ power loss
 
-* Lose in power is even more important if tests are dependent: if there are only $q$ truly independent tests out of $p$, ideally one would need to take 
+* Loss in power is even more important if tests are dependent: if there are only $q$ truly independent tests out of $p$, ideally one would need to take 
 $$
-\frac{\alpha'}{q} > \frac{\alpha'}{q}
+\frac{\alpha'}{q} > \frac{\alpha'}{p}
 $$
 
 
@@ -647,14 +668,14 @@ $$
 $$  
 the FWER estimate is $0.05$
 
-```{r,eval=FALSE}
+```{r,eval=TRUE}
 mean(apply(pvalues0,2,min)<0.05/10)
 ```
 
 ## Example: correlated SNPs
 
 Same analysis with 10 correlated SNPs:
-```{r,message=FALSE,fig.width=4,fig.height=3}
+```{r,message=FALSE,fig.width=4,fig.height=3,warning=FALSE}
 load('data/ex_snps_d.Rda')
 require(corrplot); corrplot(corr=cor(geno_d),method='square',type='upper',tl.pos='n')
 ```
@@ -662,7 +683,7 @@ require(corrplot); corrplot(corr=cor(geno_d),method='square',type='upper',tl.pos
 ## 
 
 
-```{r,eval=FALSE}
+```{r,eval=TRUE}
 pvalues0_d=matrix(NA,nrow=10,ncol=1000) #stores the SNP p values in columns, one per replicate
 for(repl in 1:1000){ 
   perm=sample(pheno)
@@ -675,7 +696,7 @@ T_sample0_d=apply(pvalues0_d,2,min)
 
 This time the FWER estimate is lower than $\alpha'=0.05$:
 
-```{r,eval=FALSE}
+```{r,eval=TRUE}
 mean(apply(pvalues0_d,2,min)<0.05/10)
 ```
 
@@ -713,7 +734,7 @@ $$
 \begin{align}
 FWER & = Pr_{H0}(\exists j \mbox{ s.t. } H0_{j} \mbox{ rejected })  \\
       & = Pr_{H0}(\exists j \mbox{ s.t. } p_{obs,j}< T_{\alpha'}) \\
-      & = Pr_{H0}(min_j p_{obs,j} < T_\alpha') \\
+      & = Pr_{H0}(\min_j p_{obs,j} < T_\alpha') \\
       & = Pr_{H0}(T<T_{\alpha'})=\alpha'.
 \end{align}
 $$
@@ -732,13 +753,13 @@ where $r$ is the number of $T^r$ smaller than $p_{obs,i}$, and <font color='turq
 ## Example: back to the 10 correlated SNPs
 
 We compute $T_{\alpha'}$ 
-```{r,eval=FALSE}
+```{r,eval=TRUE}
 Tap=quantile(T_sample0_d,probs = 0.05)
 unlist(list(threshold_perm=Tap))
 ```
 
 The estimate of the FWER is $\alpha'=0.05$
-```{r,eval=FALSE}
+```{r,eval=TRUE}
 mean(apply(pvalues0_d,2,min)<Tap)
 ```
 

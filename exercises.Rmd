@@ -9,148 +9,48 @@ output: html_document
 ****
 ### Some instructions about R Markdown
 * R Markdown is an authoring format developed by R Studio which allows to easily build reports with text sections and embedded R code chunks. Text sections are written using simple Markdown syntax and therefore .Rmd files can be compiled in html, pdf or even word format. 
-* Work on the .Rmd file and compile the output file by pushing the  __Knit HML__ button. 
-* R Markdown is an effective way to write reproducible research documents as output files are automatically regenerated whenever underlying R code or data changes. For instance, changing an R simply requires changing the underlying R chunk.
+* In R Studio, work on the .Rmd file and compile the output file by pushing the  __Knit HML__ button. 
+* R Markdown is an effective way to write reproducible research documents as output files are automatically regenerated whenever underlying R code or data change. 
 * Useful documentation and tutorials can be found through the __Help__ menu or online \
-http://rmarkdown.rstudio.com/authoring_basics.html \
-for useful documentation.
-* If you have a TeX distribution on your machine, you can typeset mathematical formulas in text chunks using LaTeX syntax, see for instance \
+http://rmarkdown.rstudio.com/authoring_basics.html 
+* You can typeset mathematical formulas in text chunks using LaTeX syntax, see for instance \
 http://users.dickinson.edu/~richesod/latex/latexcheatsheet.pdf
 
 ****
-
 ### Exercise 1
+In this exercise we will work on real data from the 1000 Genomes Project. Our data set consists of the genotypes of 629 individuals for the first 1000 SNPs with MAF greater than 5% on chromosome X. The full data set is stored in file __data/exercise_geno.Rda__ containing a data frame __geno__ and other data. The genotypic data frame has one SNP per column with additive coding (number of rare alleles).
 
-In this exercise we will work on real data from the 1000 Genomes Project. Our data set consists of the genotypes of 629 individuals for the first 1000 SNPs with MAF greater than 5% on chromosome X and mock phenotypes. The full data set is stored in file __data/exercise_geno.Rda__ containing a data frame __geno__ and a numeric vector __pheno__. The geonotypic data frame has one SNP per column with additive coding (number of rare alleles). The disease model used for simulating case/control phenotypes is additive with causal SNP X-177061-T (the SNP in column 150) and OR=1.6:
-    $$
-    Pr(P=\mbox{case}|G=x) = \frac{1}{1+\exp(-\log(0.4)-\log(1.6) \cdot x_{150})}
-    $$
-
-1. Load the data. 
-2. For each SNP, compute the p value of Fisher's exact test of association between genotypes and phenotypes. 
-    + Indication: for this question you can write a loop or use __apply()__ .  
-3. Depict all p values in a  Manhattan plot. 
-4. Which SNP would you call positive after Bonferroni's correction for controlling the FWER at 5\%?
-5. Calculate the threshold for controlling the FWER control at 5\% by permutations. 
-    + Indication: You can write a loop as in the slides or use __lapply()__ . In this case write a function which permute the phenotypes, computes all the p values and return their minimum. Then run __lapply__ on 1:N, with N the number of simulations. To speed up computations you can use __mclapply()__ from library __parallel__: it does the same as __lapply()__ but on multiple cores (this will still take around 1-2 minutes for $N=$500 simulations). You can compare the time performance of these approaches using the library __microbenchmark__.   
-6. Calculate the empirical adjusted p values.  
-7. Which SNP would you call positive after controlling the FWER at 5\% by permutations?
-    + Indication: you should obtain the same result by either using the threshold of question 5 or the empirical adjusted p values of question 6.
-
-
-### Solution, exercise 1
-0. Install and load the libraries used in this exercise (__multtest__ and __microbenchmark__ are not necessary, however in the following we use them to illustrate other possible applications)
-```{r, eval=TRUE, message=FALSE}
-#install.packages(c('parallel', 'corrplot'))
-require(parallel)
-require(corrplot)
-#install.packages(microbenchmark)
-require(multtest)
-#source("https://bioconductor.org/biocLite.R")
-#biocLite("multtest")
-require(microbenchmark)
-```
-
-1. We load the data:
-```{r,eval=TRUE}
-load('data/exercise_geno.Rda')
-geno[1:5,1:5]
-p=ncol(geno)
-```
-2. We write a simple function which extract the p value from the output of __fisher.test()__ and we apply it to each column of ___geno__:
-```{r,eval=TRUE}
-p.fun.ind=function(x,y) fisher.test(x,y)$p
-pvalues=apply(geno,2,FUN=p.fun.ind,y=pheno)
-#Alternatively we can do a simple loop:
-#for(snp in 1:ncol(geno)) p=c(p,fisher.test(pheno,geno[,snp])$p)
-```
-3. and 4. We plot $-\log_{10}(\mbox{p values})$ in gray, with the spikes corresponding to the causal makers in red. Then we calculate the threshold for rejection after Bonferroni correction and add it to the plot. Note that no SNP is rejected.
-```{r,eval=TRUE}
-color=rep(8,p); color[150]=2
-plot(-log10(pvalues),type='h',col=color)
-abline(h=-log10(0.05/p),col='red')
-which(pvalues<=0.05/p)
-```
-
-We could also use the built-in function __p.adjust()__ or function __adj_pvalues2()__ from Bioconductor library __multtest__.
-```{r,eval=TRUE}
-##Bonferroni with p.adjust()
-adj_pvalues=p.adjust(p=pvalues,method='bonferroni') #small letter!
-adj_pvalues[150]
-pvalues[150]*ncol(geno)
-which(adj_pvalues<=0.05)
-##Bonferroni with multtest (Bioconductor)
-adj_pvalues2 = mt.rawp2adjp(pvalues, proc='Bonferroni') #capital letter!
-pp=adj_pvalues2$adjp[order(adj_pvalues2$index),2] #order(adj_pvalues2$index)
-pvalues[150]*ncol(geno)
-pp[150]
-```
-5. We write a function that performs all required operations for a single data replicate (permutation) and then iterate it with __mclapply()__. 
-```{r,eval=TRUE}
-(cores=detectCores())
-
-one.sim=function(i){
-  perm=sample(pheno)
-  return(min(apply(geno,2,FUN=p.fun.ind,y=perm)))
-}
-
-N=50
-min.pvalue=mclapply(1:N, one.sim, mc.cores=cores)
-min.pvalue=as.numeric(min.pvalue)
-threshold=quantile(min.pvalue,probs=0.05)
-plot(-log10(pvalues),type='h',col=color)
-abline(h=-log10(0.05/p),col='red')
-abline(h=-log10(threshold),col='pink')
-```
-
-If we want to compare time performance:
-```{r,eval=FALSE}
-perf=microbenchmark(mclapply(1, one.sim, mc.cores=cores),lapply(1, one.sim),times=100)
-```
-6. Empirically adjusting an observed p value $p$ requires calculating the number of _smallest p values_ smaller then $p$ divided by the total number of replicates. 
-```{r,eval=TRUE}
-adj_pvalues_perm=lapply(pvalues,FUN=function(x,y){mean(x>y)},y=min.pvalue)
-```
-7. Note that SNP 158 has p value smaller than the threshold. 
-```{r,eval=TRUE}
-which(pvalues<=threshold)
-which(as.numeric(adj_pvalues_perm)<=0.05)
-```
-
-This is not the causal SNP, however it belongs in the same block of correlation (LD):
-```{r,eval=TRUE}
-corrplot(corr=cor(geno[,(158-10):(158+10)]),method='square',type='upper',tl.pos='n')
-```
-
-******
-
-### Exercise 2
-In this exercise we will use the previous data set to do a simple power study. The aim is to compare the performance of two association methods: Fisher's exact test and the test of significance for the SNP coefficient in logistic regression (the latter is equivalent to the trend test as genotypes are coded by counting the number of rare alleles).
+In this exercise we will use these data to do a simple power study. The aim is to compare the performance of two association methods: Fisher's exact test and the test of significance for the SNP coefficient in logistic regression (the latter is equivalent to the trend test because genotypes are coded by counting the number of rare alleles).
 
 Power studies for association methods give an answer to the following question: given a disease model, what is the probability that the considered method detects an association in data?
 
-1. We consider a disease model (H1) with prevalence $f_0=0.1$ and additive effect $\beta=0.2$ on SNP 150 (ie the relative risk is 1.2), so that the penetrance function is
+0. Load packages __waffect__ and __pROC__ used in this exercise.
+1. Load the data. We consider a disease model (H1) with prevalence $f_0=0.1$ and additive effect $\beta=0.2$ on SNP 150 (ie the relative risk is 1.2), so that the penetrance function is
 $$
 Pr(P=\mbox{case}|G=x) = f_0 \cdot (1+\beta \cdot x_{150})
 $$
 Calculate the vector of penetrances, one for each individual.
 2. Simulate $N$ phenotypic data replicates under the disease model above through the function __waffect()__ of library __waffect__. 
-3. Apply the two methods to each H1 replicate. Indication: for computing the empirical power, we need to calculate p values for SNP 150 only, however in this exercise you are asked to calculate p values for all other SNPs as well as these will be used later.   
+3. Apply the two association methods to each H1 replicate. Indication: for computing the empirical power, we need to calculate p values for SNP 150 only, however you are asked to calculate p values for all other SNPs as well, because they will be needed later.   
 4. Compute the empirical power. Indication: at this stage we use only the p value for SNP 150, hence FWER correction does not apply here.
 5. Another way to look at the performance of an association method is to compute its AUC. For this we need to have also H0 replicates. Start by simulating $N$ phenotypic data replicates under H0. 
 6. Apply the two methods to each H0 replicate.
-7. For each method, we will look at $\min$(p value) in a given interval (10, 50 or 100 SNPs around SNP 150, and all 1000 SNPs). Use the __roc()__ function of package __pROC__ to calculate the AUC.
-8. Try to speed up previous computations using __mclapply()__
+7. For each method, we will look at smallest p value in a given interval (10, 50 or 100 SNPs around SNP 150, and all 1000 SNPs). For a given SNP interval around SNP 150, and for each replicate under H0 and under H1, calculate the min of all p values in the interval. This will result in two vectors of length equal to $N$, one under H0 and the other under H1. Use the __roc()__ function of package __pROC__ to calculate the AUC.
 
-### Solution, exercise 2
-0. Install and load the libraries used in this exercise:
-```{r, eval=TRUE,message=FALSE}
+
+*****
+
+### Write here your solution to exercise 1!
+
+
+0. We first install and load the libraries used in this exercise:
+```{r, eval=TRUE,message=FALSE,warning=FALSE}
 #install.packages(c('waffect','pROC'))
 require(waffect)
 require(pROC)
 ```
 
-1. 
+1. We load data and create a vector with penetrances:
 ```{r, eval=TRUE}
 load('data/exercise_geno.Rda') 
 p=ncol(geno)
@@ -159,62 +59,35 @@ f0=0.1
 beta=0.2
 pi=f0*(1+beta*geno[,150])
 ```
-2. 
-```{r, eval=TRUE}
-N=50
-perm1=c()
-for(rep in 1:N){
-  perm1=cbind(perm1,waffect(prob=pi,count=315,label=c(1,0)))
-} 
-```
-3. For each method, we store p values in a matrix (one column per replicate). 
-```{r, eval=TRUE}
-p.fun.ind=function(x,y) fisher.test(x,y)$p 
-p.fun.add=function(x,y) summary(glm(y~x,family=binomial(link='logit')))$coef[2,4]
-p_ind1=c()
-p_add1=c()
-for(rep in 1:N){
-  p_ind1=cbind(p_ind1,apply(geno,2,FUN=p.fun.ind,y=perm1[,rep]))
-  p_add1=cbind(p_add1,apply(geno,2,FUN=p.fun.add,y=perm1[,rep]))
-  cat(rep,'')
-}
-```
-4. As expected the trend test is more performant given the disease model.
-```{r,eval=TRUE}
-(pw_ind=mean(p_ind1[150,]<0.05))
-(pw_add=mean(p_add1[150,]<0.05))
-```
-5. We simply permute the case/control status in the original phenotypic vector. 
-```{r, eval=TRUE}
-perm0=c()
-for(rep in 1:N){
-  perm0=cbind(perm0,sample(pheno))
-} 
-```
-6.
-```{r eval=TRUE}
-p_ind0=c()
-p_add0=c()
-for(rep in 1:N){
-  p_ind0=cbind(p_ind0,apply(geno,2,FUN=p.fun.ind,y=perm0[,rep]))
-  p_add0=cbind(p_add0,apply(geno,2,FUN=p.fun.add,y=perm0[,rep]))
-  cat(rep,'')
-}
-```
-7. 
-```{r eval=TRUE}
-interval=(150-100):(150+100) #1:p
-stat_ind0=apply(p_ind0[interval,],2,FUN=min)
-stat_ind1=apply(p_ind1[interval,],2,FUN=min)
-roc(controls=stat_ind0,cases=stat_ind1,plot=TRUE)
-#
-stat_add0=apply(p_add0[interval,],2,FUN=min)
-stat_add1=apply(p_add1[interval,],2,FUN=min)
-roc(controls=stat_add0,cases=stat_add1,add=TRUE,plot=TRUE,col=2)
-```
-8. To do!
 
 
+
+
+
+*****
+### Exercise 2
+
+The data set used in previous exercise also contains a numeric vector __pheno__ with simulated phenotypes. The disease model I used for simulating case/control phenotypes is additive with causal SNP X-177061-T (the SNP in column 150) and OR=1.6:
+    $$
+    Pr(P=\mbox{case}|G=x) = \frac{1}{1+\exp(-\log(0.4)-\log(1.6) \cdot x_{150})}
+    $$
+
+1. (Re)Load the data. 
+2. For each SNP, compute the p value of Fisher's exact test of association between genotypes and phenotypes. 
+    + Indication: for this question you can write a loop or use __apply()__ .  
+3. Depict all p values in a  Manhattan plot. 
+4. Which SNP would you call positive after Bonferroni's correction for controlling the FWER at 5\%?
+5. Calculate the threshold for controlling the FWER control at 5\% by permutations. 
+    + Indication: You can write a loop as in the slides or use __lapply()__ . In this case write a function which permute the phenotypes, computes all the p values and return their minimum. Then run __lapply__ on 1:N, with N the number of simulations. To speed up computations you can use __mclapply()__ from library __parallel__: it does the same as __lapply()__ but on multiple cores (this will still take around 1-2 minutes for $N=$ 500 simulations). You can compare the time performance of these approaches using the library __microbenchmark__.   
+6. Calculate the empirical adjusted p values.  
+7. Which SNP would you call positive after controlling the FWER at 5\% by permutations?
+    + Indication: you should obtain the same result by either using the threshold of question 5 or the empirical adjusted p values of question 6.
+
+
+
+******
+
+### Write here your solution to exercise 2!
 
 
 
