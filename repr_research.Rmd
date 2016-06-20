@@ -1,0 +1,54 @@
+---
+title: "Some words about reproducible research"
+author: "Vittorio Perduca (Univ. Paris Descartes)"
+date: "UiT Tromsø, 21 June 2016"
+output: ioslides_presentation
+---
+
+## Definition
+
+* _Reproducibility is the ability of an entire experiment or study to be duplicated, either by the same researcher or by someone else working independently._ (Wikipedia)
+* Reproducibility is enhanced if analysis (including source code) and results are saved in well documented, transparent and portable supports so that:
+    - anyone can rerun the original analysis
+    - authors do not get drown in a sea of different versions, trying to match the latest script file with the latest text version.
+
+## Tools for research with statistical contents
+
+* RStudio: authoring contents with text and R output  
+    - R Markdown: reports in word, html, pdf (latex-style) and presentations in html
+    - R presentations
+    - Sweave: reports and presentations on pdf (latex)
+    - Shiny: interactive widgets 
+* Jupyter and Python notebook: interactive notebooks
+* Git and Github: control version, allows to work on same files with collaborators
+* Overleaf: collaborative writing
+
+
+
+## R Markdown
+
+* Not a WYSIWYG (_what you see is what you get_) authoring system such as MS word and Powerpoint: what you type is _almost_ what you get 
+* Easy syntax for writing text paragraphs and tables (though a bit simplistic)
+* Allows LaTeX syntax for mathematical formulas
+* Easy to embed R code 'chunks' to render plots and output data summary.
+* The output file is automatically updated when code and/or data change. 
+
+
+## Example: slide with R output
+```{r}
+summary(pressure)
+```
+
+## Example: slide with R output 
+
+```{r}
+plot(pressure)
+```
+
+## Learn R Markdown!
+
+* Many tutorials can be found online. Search a combination of 'R Markdown', 'reproducible research', 'github'...
+* For instance: 
+    - https://rpubs.com/marschmi/105639
+      - R.D. Peng's Mooc: https://www.coursera.org/learn/reproducible-research
+

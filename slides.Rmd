@@ -38,7 +38,7 @@ output:
 
 * __Steps:__
 
-    1. Set up null (H0) and althernative (H1) hypothesis
+    1. Set up null (H0) and alternative (H1) hypothesis
     2. Calculate a test statistic $T_{obs}$ on the data
     3. Decide on the basis of $T_{obs}$ whether to reject H0 in a way that allows to <font color='Turquoise'>control the false positive rate</font> at a given threshold $\alpha$:
         + <font color = 'Magenta'>Crucial ingredient:</font> knowledge of the distribution of $T$ under H0 
@@ -90,7 +90,7 @@ legend(x='topleft', lwd=2, col=c(1,'darkgreen'),legend=c('T under H0', expressio
 _<font size=2>See the .Rmd file for this plot's code</font>_
 
 ## 
-Equivalently, using the R fonction for Student's test:
+Equivalently, using the R function for Student's test:
 
 ```{r}
 t.test(x=Mvalue[Outcome==0],y=Mvalue[Outcome==1],alternative='greater', var.equal=T)
@@ -207,7 +207,7 @@ power.t.test(n=50,delta=0.28,alternative='one.sided',type='two.sample',sig.level
 ## The replicability crisis 
 
 * Positive findings are often not replicable in subsequent studies (in all fields)
-* This can happen when initial studies are underpowered. To see why, consider the <font color='magenta'>false-positve report probability (FPRP)</font>:
+* This can happen when initial studies are underpowered. To see why, consider the <font color='magenta'>false-positive report probability (FPRP)</font>:
 
 $$
 \begin{align}
@@ -255,7 +255,7 @@ legend(x='topleft',lwd=1,col=c('black','red','darkgreen'),
 ## Simulations are useful when...
 
 
-* ...the distribution of $T$ under H0 is not known (analytical derivation of its densities and CDF not possible, large sample approximations not available or not applicable) but it is possible to sample it<br> 
+* ...the distribution of $T$ under H0 is not known (analytic derivation of its densities and CDF not possible, large sample approximations not available or not applicable) but it is possible to sample it<br> 
 $\Rightarrow$ we can calculate the <font color='Magenta'>empirical p value:</font>
     1. simulate $N$ realizations of $T$ under H0: 
     2. estimate p with 
@@ -334,7 +334,7 @@ In this case, drawing a sample of the statistic under a given hypothesis require
 - simulate <font color='magenta'>$N$ data replicates</font> according to the hypothesis
 - for each replicate $i$, calculate the statistic realization $T_i$ 
 
-Afterwich, the p value and power are estimated as above.
+Then p value and power are estimated as above.
 
 
 
@@ -468,7 +468,7 @@ mean(T_sample0<T_obs)
 
 - Apart from a few simple situations (eg  t-test, $\chi^2$-test...), the distribution of the test statistics $T$ under H1 is not known, neither exactly nor asymptotically
 - This is typical of multi markers methods for GWAS and other large scale genetic studies
-- In these cases power is usually estimated by analaysing many data replicates under H1
+- In these cases power is usually estimated by analysing many data replicates under H1
 - In association studies H1 is the assumption of a <font color='magenta'>disease model</font> ie a penetrance function
 - In symbols:
     + $n_1=$ number of cases, $n_0$ number of controls, $n=n_0+n_1$ 
@@ -487,7 +487,7 @@ mean(T_sample0<T_obs)
 * Two alternative approaches:
 
     1. Simulation of both genotypes and phenotypes for a very large population:
-        + Simulate $m$ genotpic datasets, with $m>>n$
+        + Simulate $m$ genotypic datasets, with $m>>n$
         + For each individual of this large population draw $Y_i|X_i$ as above
         + Hope that $m$ is large enough to have enough cases
     2. Simulation of genotypes given fixed phenotypes: $X_i|Y_i$ has a multinomial distribution with parameter $\propto \pi_i\times Pr(X_i)$. Approach implemented in HAPGEN <font size='3'>[Zu, S. (2011). Bioinformatics, 27(16), 2304-2305]</font>
@@ -598,7 +598,7 @@ $$
 
 * The <font color='magenta'>Family Wise Error Rate (FWER)</font> is the probability of having at least one false positive when H0 is true for all $p$ tests.
 
-* If all tests are independent (not realistic beacause of LD):
+* If all tests are independent (not realistic because of LD):
 $$
 FWER = Pr(\exists ~1 \leq j \leq p \mbox{ s.t. } H0_{j} \mbox{ rejected } | \forall~ j H0_{j} \mbox{ holds})  = 1-(1-\alpha)^p
 $$
