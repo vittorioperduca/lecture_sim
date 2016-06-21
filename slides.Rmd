@@ -274,7 +274,7 @@ $\Rightarrow$ we can calculate the <font color='Magenta'>empirical p value:</fon
     $$
     \hat{p} = \frac{\#\{ \mbox{ H0 } T \mbox{ realizations }  > T_{obs}\}}{N} 
     $$
-
+(change $>$ for bilateral and unilateral left tests...)
 ## and when..
 
 ...the distribution of $T$ under H1 is not known but it is possible to sample it <br>
@@ -559,7 +559,7 @@ Attention: raising the disease prevalence is not an option as this will bias the
 * idea is to sample recursively phenotypes. Let $Z_i$ the number of cases affected for individuals $1,\ldots,i$, then the steps are 
     + draw $Y_1$ conditionally on the fixed total number of cases $Z_n=n_1$
     + draw $Y_2$ conditionnally on $Z_1$ and $Z_n=n_1$
-    + drawn $Y_3$ conditionally on $Z_2$ and $Z_n=n1$
+    + drawn $Y_3$ conditionally on $Z_2$ and $Z_n=n_1$
     + etc
     
 <center>
@@ -568,10 +568,10 @@ Attention: raising the disease prevalence is not an option as this will bias the
 
 ## Example
 
-* We calculate the empirical power of the test looking for a signal in the 10 SNPs by simulating phenotypes under H0 using waffect
+* We calculate the empirical power of the test looking for a signal in the 10 SNPs by simulating phenotypes under H1 using waffect
 * Fr H1 we take an additive disease model with prevalence $f_0=0.1$ and OR $=1.6$ on SNP 8: 
 $$
-\pi_i= \frac{1}{1+\exp(-\log(f0)-\log(OR)\times snp_8)}
+\pi_i= \frac{1}{1+\exp(-\log(f_0)-\log(OR)\times snp_8)}
 $$
 * Recall that 
     + $T=\min_{j=1,\ldots,10} p_j$
@@ -747,7 +747,7 @@ Equivalently, define for each SNP $j$ the <font color='turquoise'>empirical adju
 $$
 p^{adj}_j=\frac{r+1}{N+1}
 $$
-where $r$ is the number of $T^r$ smaller than $p_{obs,i}$, and <font color='turquoise'>reject H0$_i$ if $p^{adj}_i<\alpha'$</font>
+where $r$ is the number of $T^r$ smaller than $p_{obs,j}$, and <font color='turquoise'>reject H0$_j$ if $p^{adj}_j<\alpha'$</font>
 
 
 ## Example: back to the 10 correlated SNPs
